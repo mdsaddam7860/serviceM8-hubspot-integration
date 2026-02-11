@@ -4,19 +4,19 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "node server.js",
-    "start": "node server.js"
+    "test": "node serviceM8-hubspot-integration.js",
+    "start": "node serviceM8-hubspot-integration.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mdsaddam7860/server-blueprint.git"
+    "url": "git+https://github.com/mdsaddam7860/serviceM8-hubspot-integration.git"
   },
   "author": "Mohammad Saddam",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mdsaddam7860/server-blueprint/issues"
+    "url": "https://github.com/mdsaddam7860/serviceM8-hubspot-integration/issues"
   },
-  "homepage": "https://github.com/mdsaddam7860/server-blueprint#readme",
+  "homepage": "https://github.com/mdsaddam7860/serviceM8-hubspot-integration#readme",
   "description": "",
   "dependencies": {
     "@mohammadsaddam-dev/hubspot-toolkit": "^1.0.0",
