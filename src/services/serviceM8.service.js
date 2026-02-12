@@ -161,8 +161,12 @@ async function syncCompaniesTask() {
     // 1. Process the batch (e.g., Save to DB)
     // await processBatchInDatabase(records);
 
+    logger.info(`Processing a batch of ${records.length} companies...`);
+    logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
+    // logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
+
     // 2. Clear progress update
-    console.clear();
+    // console.clear();
     logger.info(
       `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed...`
     );
