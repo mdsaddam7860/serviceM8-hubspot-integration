@@ -8,7 +8,9 @@ import { logger } from "./src/index.js";
 import { getHubspotClient } from "./src/configs/hubspot.config.js";
 
 // Start the server, For CI/CD deployments remove deploy.yml from .gitignore
-// npm i express axios node-cron winston winston-daily-rotate-file dotenv @mohammadsaddam-dev/hubspot-toolkit
+// npm i
+import { syncCompaniesTask } from "./src/services/serviceM8.service.js";
+import { serviceM8Client } from "./src/configs/serviceM8.config.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -28,6 +30,7 @@ function serverInit() {
 }
 
 serverInit();
+syncCompaniesTask();
 
 async function init() {
   try {
@@ -42,6 +45,7 @@ async function init() {
       //   )}`
       // );
       logger.info(`✅ HubSpot client initialized successfully`);
+      // logger.info(`Client: ${JSON.stringify(serviceM8Client, null, 2)}`);
     } catch (error) {
       logger.error("❌ HubSpot client failed to initialize:", error);
     }
