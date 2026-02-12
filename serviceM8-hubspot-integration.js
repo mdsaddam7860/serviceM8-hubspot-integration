@@ -11,6 +11,7 @@ import { getHubspotClient } from "./src/configs/hubspot.config.js";
 // npm i
 import { syncCompaniesTask } from "./src/services/serviceM8.service.js";
 import { serviceM8Client } from "./src/configs/serviceM8.config.js";
+import { processBatchContactInHubspot } from "./src/services/hubspot.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -30,7 +31,7 @@ function serverInit() {
 }
 
 serverInit();
-syncCompaniesTask();
+processBatchContactInHubspot();
 
 async function init() {
   try {

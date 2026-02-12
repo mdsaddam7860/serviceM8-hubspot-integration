@@ -5,7 +5,7 @@ const axiosInstance = axios.create({
   baseURL: "https://api.hubapi.com/",
   headers: {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${process.env.HUBSPOT_API_KEY}`,
   },
 });
 let hubspotClient = null;
@@ -13,10 +13,9 @@ let hubspotClient = null;
 function getHubspotClient() {
   if (hubspotClient) return hubspotClient;
 
-  if (!hubspotClient && process.env.HUBSPOT_ACCESS_TOKEN) {
+  if (!hubspotClient && process.env.HUBSPOT_API_KEY) {
     hubspotClient = createClient({
-      apiKey: process.env.HUBSPOT_API_KEY, // or ACCESS TOKEN
-      accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      accessToken: process.env.HUBSPOT_API_KEY,
     });
   }
   return hubspotClient;

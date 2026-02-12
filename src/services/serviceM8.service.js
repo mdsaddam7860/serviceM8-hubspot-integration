@@ -191,6 +191,34 @@ const syncServiceM8ToHubSpot = async () => {
 
   return { totalSynced: total };
 };
+
+async function syncServiceM8ClientToHubSpotAsContact() {
+  const companyStream = serviceM8Generator("company.json");
+
+  for await (const { records, stats } of companyStream) {
+    logger.info(`Processing a batch of ${records.length} Clients...`);
+    logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
+
+    // 1. Process the batch (e.g., Save to DB)
+    // await processBatchInDatabase(records);
+
+    // await processBatchContactInHubspot(records);
+
+    // logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
+
+    // 2. Clear progress update
+    // console.clear();
+    logger.info(
+      `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed...`
+    );
+    logger.info(
+      `⏱️  Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+    );
+  }
+
+  logger.info("✅ Full sync successful.");
+}
+
 export {
   getAllClient,
   getAllJobs,
@@ -198,4 +226,5 @@ export {
   getAllNotes,
   syncCompaniesTask,
   syncServiceM8ToHubSpot,
+  syncServiceM8ClientToHubSpotAsContact,
 };
