@@ -8,6 +8,10 @@ async function upsertContactInHubspot(record) {
     const hs_client = getHubspotClient();
 
     const sourceid = record?.uuid;
+    const payload = {
+      firstname: record?.name,
+      sourceid: sourceid,
+    };
     const filterGroups = [
       {
         filters: [
@@ -20,12 +24,26 @@ async function upsertContactInHubspot(record) {
       },
     ];
     // search contact based on sourceid
-    const existingContact = await hs_client.contacts.searchContacts(
-      filterGroups,
-      (properties = []),
-      (limit = 50),
-      (after = null)
+
+    const existingContact = await hs_client.contacts.getContactByCustomField(
+      "sourceid",
+      sourceid
     );
+    // const existingContact = await hs_client.contacts.searchContacts(
+    //   filterGroups,
+    //   ["sourceid", "name"],
+    //   1
+    // );
+
+    if (existingContact) {
+      return await hs_client.contacts.updateContact(
+        existingContact?.id,
+        payload
+      );
+    } else {
+      // create  contact
+      return await hs_client.contacts.createContact(payload);
+    }
   } catch (error) {
     logger.error("❌ HubSpot Contact failed to upsert:", {
       status: error.response?.status,

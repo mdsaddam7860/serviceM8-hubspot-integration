@@ -19,7 +19,7 @@
   "homepage": "https://github.com/mdsaddam7860/serviceM8-hubspot-integration#readme",
   "description": "",
   "dependencies": {
-    "@mohammadsaddam-dev/hubspot-toolkit": "^1.1.0",
+    "@mohammadsaddam-dev/hubspot-toolkit": "^2.0.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
