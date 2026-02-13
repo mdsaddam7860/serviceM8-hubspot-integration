@@ -6,11 +6,14 @@ dotenv.config({
 import { app } from "./src/app.js";
 import { logger } from "./src/index.js";
 import { syncContact } from "./src/services/hubspot.service.js";
-import { getHubspotClient } from "./src/configs/hubspot.config.js";
-
+import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
+import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 // Start the server, For CI/CD deployments remove deploy.yml from .gitignore
 // npm i
-import { syncCompaniesTask } from "./src/services/serviceM8.service.js";
+import {
+  syncCompaniesTask,
+  syncServiceM8ClientToHubSpotAsContact,
+} from "./src/services/serviceM8.service.js";
 import { serviceM8Client } from "./src/configs/serviceM8.config.js";
 import { processBatchDealInHubspot } from "./src/services/hubspot.service.js";
 
@@ -32,22 +35,25 @@ function serverInit() {
 }
 
 serverInit();
-syncContact();
+// syncContact();
 
 async function init() {
   try {
-    // Initialize Hubspot Client
+    // Initialize Hubspot and serviceM8 Client
     try {
-      const client = getHubspotClient();
+      logger.info(` ➡️  Configs initializeation started successfully...`);
+      getHubspotClient();
+      getHSAxios();
+      getServiceM8Client();
       // logger.info(
       //   `✅ HubSpot client initialized successfully : ${JSON.stringify(
-      //     client,
+      //     hsAxios,
       //     null,
       //     2
       //   )}`
       // );
-      logger.info(`✅ HubSpot client initialized successfully`);
       // logger.info(`Client: ${JSON.stringify(serviceM8Client, null, 2)}`);
+      logger.info(`✅  client initialized successfully`);
     } catch (error) {
       logger.error("❌ HubSpot client failed to initialize:", error);
     }

@@ -7,13 +7,20 @@ const baseURL = process.env.SERVICEM8_BASE_URL;
 const token = Buffer.from(`${apiKey}:`).toString();
 const base_url = Buffer.from(`${baseURL}`).toString();
 
-const serviceM8Client = axios.create({
-  baseURL: "https://api.servicem8.com/api_1.0/",
-  // baseURL: base_url,
-  headers: {
-    accept: "application/json",
-    "X-Api-Key": "smk-d00d83-847d3c719c0251ba-75bc01bf149c6bdc",
-  },
-});
+let serviceM8Client = null;
 
-export { serviceM8Client };
+function getServiceM8Client() {
+  if (serviceM8Client) return serviceM8Client;
+  serviceM8Client = axios.create({
+    baseURL: process.env.SERVICEM8_BASE_URL,
+    // baseURL: "https://api.servicem8.com/api_1.0/",
+    headers: {
+      accept: "application/json",
+      "X-Api-Key": process.env.SERVICEM8_API_KEY,
+    },
+  });
+
+  return serviceM8Client;
+}
+
+export { serviceM8Client, getServiceM8Client };

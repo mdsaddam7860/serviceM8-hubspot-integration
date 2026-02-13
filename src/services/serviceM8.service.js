@@ -1,5 +1,5 @@
 import { logger } from "../index.js";
-import { serviceM8Client } from "../configs/serviceM8.config.js";
+import { getServiceM8Client } from "../configs/serviceM8.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 import { processBatchContactInHubspot } from "./hubspot.service.js";
 
@@ -12,6 +12,7 @@ async function fetchAllServiceM8Records(endpoint) {
   let allRecords = [];
   let nextCursor = "-1"; // Documentation specifies -1 for the first page
   let pageCount = 0;
+  const serviceM8Client = getServiceM8Client();
 
   try {
     while (nextCursor) {
@@ -62,7 +63,14 @@ async function fetchAllServiceM8Records(endpoint) {
   }
 }
 
-async function* serviceM8Generator(endpoint) {
+async function* serviceM8Generator(
+  endpoint,
+  {
+    serviceM8Client = getServiceM8Client(),
+    executor = serviceM8Executor,
+    log = logger,
+  } = {}
+) {
   let nextCursor = "-1";
   let pageCount = 0;
   let totalProcessed = 0;
@@ -72,7 +80,7 @@ async function* serviceM8Generator(endpoint) {
     while (nextCursor) {
       pageCount++;
 
-      const response = await serviceM8Executor(
+      const response = await executor(
         async () => {
           return await serviceM8Client.get(endpoint, {
             params: { cursor: nextCursor },
@@ -103,14 +111,14 @@ async function* serviceM8Generator(endpoint) {
 
       nextCursor = response.headers["x-next-cursor"];
 
-      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+      log.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: pageCount,
         processed: totalProcessed,
         speed: `${recordsPerSecond} rec/sec`,
       });
     }
   } catch (error) {
-    logger.error(`Stream interrupted at page ${pageCount}`, {
+    log.error(`Stream interrupted at page ${pageCount}`, {
       status: error.response?.status,
       response: error.response?.data,
       method: error.config?.method,
@@ -198,7 +206,8 @@ async function syncServiceM8ClientToHubSpotAsContact() {
     const companyStream = serviceM8Generator("company.json");
 
     for await (const { records, stats } of companyStream) {
-      await processBatchContactInHubspot(records);
+      // await processBatchContactInHubspot(records);
+      console.clear();
       logger.info(
         `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
       );

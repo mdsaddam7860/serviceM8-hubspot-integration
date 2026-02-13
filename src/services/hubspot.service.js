@@ -354,18 +354,24 @@ async function processBatchNoteInHubspot(
 //   }
 // }
 
-async function* hubspotGenerator(endpoint) {
+async function* hubspotGenerator(
+  endpoint,
+  {
+    axiosInstance = getHSAxios(),
+    executor = hubspotExecutor,
+    log = logger,
+  } = {}
+) {
   let after = undefined;
   let pageCount = 0;
   let totalProcessed = 0;
   const startTime = Date.now();
-  const axiosInstance = getHSAxios();
 
   try {
     do {
       pageCount++;
 
-      const response = await hubspotExecutor(
+      const response = await executor(
         async () => {
           return await axiosInstance.get(endpoint, {
             params: { limit: 100, after },
@@ -396,14 +402,14 @@ async function* hubspotGenerator(endpoint) {
 
       after = response.data?.paging?.next?.after;
 
-      logger.info(`[HubSpot Progress] ${endpoint}`, {
-        page: pageCount,
-        processed: totalProcessed,
-        speed: `${recordsPerSecond} rec/sec`,
-      });
+      // log.info(`[HubSpot Progress] ${endpoint}`, {
+      //   page: pageCount,
+      //   processed: totalProcessed,
+      //   speed: `${recordsPerSecond} rec/sec`,
+      // });
     } while (after);
   } catch (error) {
-    logger.error(`Stream interrupted at page ${pageCount}`, {
+    log.error(`Stream interrupted at page ${pageCount}`, {
       status: error.response?.status,
       response: error.response?.data,
       method: error.config?.method,
@@ -414,42 +420,50 @@ async function* hubspotGenerator(endpoint) {
   }
 }
 
-async function syncContact() {
+// async function syncContact() {
+//   try {
+//     const contactStream = hubspotGenerator("/crm/v3/objects/contacts");
+
+//     for await (const { records, stats } of contactStream) {
+//       // 1. Process the batch (e.g., Save to DB)
+//       // await processBatchInDatabase(records);
+
+//       // logger.info(`Processing a batch of ${records.length} companies...`);
+//       // logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
+
+//       logger.info(`[HubSpot Progress] `, {
+//         page: stats.pageCount,
+//         processed: stats.totalProcessed,
+//         speed: `${stats.recordsPerSecond} rec/sec`,
+//       });
+//     }
+//   } catch (error) {
+//     logger.error(`❌ Error processing Contact in Batch`, {
+//       status: error?.status,
+//       response: error.response?.data,
+//       method: error?.method,
+//       url: error?.config?.url,
+//       headers: error?.config?.headers,
+//     });
+//     logger.error(`error`, error);
+//   }
+// }
+async function syncContact({ log = logger } = {}) {
   try {
     const contactStream = hubspotGenerator("/crm/v3/objects/contacts");
 
     for await (const { records, stats } of contactStream) {
-      // 1. Process the batch (e.g., Save to DB)
-      // await processBatchInDatabase(records);
-
-      logger.info(`Processing a batch of ${records.length} companies...`);
-      logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
-      // logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
-
-      // 2. Clear progress update
-      console.clear();
-      logger.info(
-        `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed...`
-      );
-      logger.info(
-        `⏱️  Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
-      );
+      log.info(`Processing a batch of ${records.length} companies...`);
+      log.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
     }
   } catch (error) {
-    logger.error(`❌ Error processing Contact in Batch`, {
-      status: error?.status,
-      response: error.response?.data,
-      method: error?.method,
-      url: error?.config?.url,
-      headers: error?.config?.headers,
-    });
-    logger.error(`error`, error);
+    log.error("❌ Error processing Contact in Batch", error);
   }
 }
-
 export {
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchNoteInHubspot,
   syncContact,
+  hubspotGenerator,
 };

@@ -4,7 +4,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "node serviceM8-hubspot-integration.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "start": "node serviceM8-hubspot-integration.js"
   },
   "repository": {
@@ -26,5 +26,9 @@
     "node-cron": "^4.2.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "jest": "^30.2.0"
   }
 }
