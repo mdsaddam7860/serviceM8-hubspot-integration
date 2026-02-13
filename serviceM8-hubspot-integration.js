@@ -5,6 +5,7 @@ dotenv.config({
 });
 import { app } from "./src/app.js";
 import { logger } from "./src/index.js";
+import { syncContact } from "./src/services/hubspot.service.js";
 import { getHubspotClient } from "./src/configs/hubspot.config.js";
 
 // Start the server, For CI/CD deployments remove deploy.yml from .gitignore
@@ -31,7 +32,7 @@ function serverInit() {
 }
 
 serverInit();
-processBatchDealInHubspot();
+syncContact();
 
 async function init() {
   try {

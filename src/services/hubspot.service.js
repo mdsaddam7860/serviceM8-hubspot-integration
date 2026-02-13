@@ -1,5 +1,5 @@
 import { logger } from "../index.js";
-import { getHubspotClient } from "../configs/hubspot.config.js";
+import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 
 async function upsertContactInHubspot(record = {}) {
@@ -296,8 +296,160 @@ async function processBatchNoteInHubspot(
   }
 }
 
+// async function* hubspotGenerator(endpoint) {
+//   let after = null;
+//   let pageCount = 0;
+//   let totalProcessed = 0;
+//   const startTime = Date.now();
+
+//   try {
+//     do {
+//       // fetch a page
+//       pageCount++;
+//       const response = await hubspotExecutor(
+//         async () => {
+//           return await axiosInstance.get(endpoint, {
+//             params: { after, limit: 100 },
+//           });
+//         },
+//         { endpoint, page: pageCount }
+//       );
+//       const records = response.data?.results || [];
+//       // const records = Array.isArray(data) ? data : [data];
+
+//       totalProcessed += records.length;
+
+//       // Calculate Stats
+//       const elapsedSeconds = (Date.now() - startTime) / 1000;
+//       const recordsPerSecond = (totalProcessed / elapsedSeconds).toFixed(2);
+
+//       // Yield data + metadata for the consumer
+//       yield {
+//         records,
+//         stats: {
+//           page: pageCount,
+//           totalProcessed,
+//           recordsPerSecond,
+//           elapsedSeconds: elapsedSeconds.toFixed(1),
+//         },
+//       };
+
+//       after = response.data?.paging?.next?.after;
+
+//       logger.info(`[Hubspot Progress] ${endpoint}`, {
+//         page: pageCount,
+//         processed: totalProcessed,
+//         speed: `${recordsPerSecond} rec/sec`,
+//       });
+//     } while (after);
+//   } catch (error) {
+//     logger.error(`Stream interrupted at page ${pageCount}`, {
+//       status: error.response?.status,
+//       response: error.response?.data,
+//       method: error.config?.method,
+//       url: error.config?.url,
+//       headers: error.config?.headers,
+//     });
+//     throw error;
+//   }
+// }
+
+async function* hubspotGenerator(endpoint) {
+  let after = undefined;
+  let pageCount = 0;
+  let totalProcessed = 0;
+  const startTime = Date.now();
+  const axiosInstance = getHSAxios();
+
+  try {
+    do {
+      pageCount++;
+
+      const response = await hubspotExecutor(
+        async () => {
+          return await axiosInstance.get(endpoint, {
+            params: { limit: 100, after },
+          });
+        },
+        { endpoint, page: pageCount }
+      );
+
+      const records = response.data?.results || [];
+
+      totalProcessed += records.length;
+
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const recordsPerSecond =
+        elapsedSeconds > 0
+          ? (totalProcessed / elapsedSeconds).toFixed(2)
+          : "0.00";
+
+      yield {
+        records,
+        stats: {
+          page: pageCount,
+          totalProcessed,
+          recordsPerSecond,
+          elapsedSeconds: elapsedSeconds.toFixed(1),
+        },
+      };
+
+      after = response.data?.paging?.next?.after;
+
+      logger.info(`[HubSpot Progress] ${endpoint}`, {
+        page: pageCount,
+        processed: totalProcessed,
+        speed: `${recordsPerSecond} rec/sec`,
+      });
+    } while (after);
+  } catch (error) {
+    logger.error(`Stream interrupted at page ${pageCount}`, {
+      status: error.response?.status,
+      response: error.response?.data,
+      method: error.config?.method,
+      url: error.config?.url,
+      headers: error.config?.headers,
+    });
+    throw error;
+  }
+}
+
+async function syncContact() {
+  try {
+    const contactStream = hubspotGenerator("/crm/v3/objects/contacts");
+
+    for await (const { records, stats } of contactStream) {
+      // 1. Process the batch (e.g., Save to DB)
+      // await processBatchInDatabase(records);
+
+      logger.info(`Processing a batch of ${records.length} companies...`);
+      logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
+      // logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
+
+      // 2. Clear progress update
+      console.clear();
+      logger.info(
+        `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed...`
+      );
+      logger.info(
+        `⏱️  Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+      );
+    }
+  } catch (error) {
+    logger.error(`❌ Error processing Contact in Batch`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+    });
+    logger.error(`error`, error);
+  }
+}
+
 export {
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchNoteInHubspot,
+  syncContact,
 };

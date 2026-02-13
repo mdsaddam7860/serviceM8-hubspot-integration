@@ -1,6 +1,7 @@
 import { logger } from "../index.js";
 import { serviceM8Client } from "../configs/serviceM8.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
+import { processBatchContactInHubspot } from "./hubspot.service.js";
 
 /**
  * Fetches all records from a ServiceM8 endpoint using cursor-based pagination.
@@ -193,30 +194,31 @@ const syncServiceM8ToHubSpot = async () => {
 };
 
 async function syncServiceM8ClientToHubSpotAsContact() {
-  const companyStream = serviceM8Generator("company.json");
+  try {
+    const companyStream = serviceM8Generator("company.json");
 
-  for await (const { records, stats } of companyStream) {
-    logger.info(`Processing a batch of ${records.length} Clients...`);
-    logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
+    for await (const { records, stats } of companyStream) {
+      await processBatchContactInHubspot(records);
+      logger.info(
+        `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
+      );
+      logger.info(
+        `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+      );
+    }
 
-    // 1. Process the batch (e.g., Save to DB)
-    // await processBatchInDatabase(records);
-
-    // await processBatchContactInHubspot(records);
-
-    // logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
-
-    // 2. Clear progress update
-    // console.clear();
-    logger.info(
-      `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed...`
-    );
-    logger.info(
-      `⏱️  Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
-    );
+    logger.info("✅ Full sync successful.");
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+    throw error;
   }
-
-  logger.info("✅ Full sync successful.");
 }
 
 export {
