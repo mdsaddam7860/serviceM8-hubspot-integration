@@ -3,6 +3,11 @@ import { getServiceM8Client } from "../configs/serviceM8.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 import { processBatchContactInHubspot } from "./hubspot.service.js";
 
+const clientEndpoint = "company.json";
+const jobsEndpoint = "job.json";
+const staffsEndpoint = "staff.json";
+const NotesEndpoint = "note.json";
+
 /**
  * Fetches all records from a ServiceM8 endpoint using cursor-based pagination.
  * @param {string} endpoint - e.g., 'company.json'

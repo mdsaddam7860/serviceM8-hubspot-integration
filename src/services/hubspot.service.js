@@ -453,7 +453,7 @@ async function syncContact({ log = logger } = {}) {
     const contactStream = hubspotGenerator("/crm/v3/objects/contacts");
 
     for await (const { records, stats } of contactStream) {
-      log.info(`Processing a batch of ${records.length} companies...`);
+      log.info(`Processing a batch of ${records.length} Contacts...`);
       log.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
     }
   } catch (error) {

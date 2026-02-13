@@ -35,7 +35,7 @@ function serverInit() {
 }
 
 serverInit();
-// syncContact();
+syncContact();
 
 async function init() {
   try {
