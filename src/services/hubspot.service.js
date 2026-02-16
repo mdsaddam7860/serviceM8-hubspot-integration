@@ -1,4 +1,4 @@
-import { logger } from "../index.js";
+import { logger, contactMappingSM8ToHS, dealMappingSM8ToHS } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 
@@ -8,10 +8,11 @@ async function upsertContactInHubspot(record = {}) {
     const hs_client = getHubspotClient();
 
     const sourceid = record?.uuid;
-    const payload = {
-      firstname: record?.name,
-      sourceid: sourceid,
-    };
+    const payload = contactMappingSM8ToHS(record);
+    // const payload = {
+    //   firstname: record?.name,
+    //   sourceid: sourceid,
+    // };
 
     // search contact based on sourceid
 
@@ -51,11 +52,7 @@ async function upsertDealInHubspot(record = {}) {
     const hs_client = getHubspotClient();
 
     const sourceid = record?.uuid;
-    const payload = {
-      dealname: record?.job_address,
-      pipeline: "1322868159",
-      sourceid: sourceid,
-    };
+    const payload = dealMappingSM8ToHS(record);
 
     // search contact based on sourceid
 
@@ -65,12 +62,7 @@ async function upsertDealInHubspot(record = {}) {
     );
 
     if (existingDeal) {
-      logger.info(
-        `Existing deal: ${JSON.stringify(existingDeal?.id, null, 2)}`
-      );
-
       // Update Deal
-
       return await hs_client.deals.updateDeal(existingDeal?.id, payload);
     } else {
       // create  Deal
@@ -180,67 +172,67 @@ async function processBatchContactInHubspot(
 }
 async function processBatchDealInHubspot(
   records = [
-    {
-      uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
-      active: 1,
-      date: "2026-02-01 00:00:00",
-      job_address: "35 Wigmore St,\nWillowbank QLD 4306",
-      billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
-      status: "Completed",
-      quote_date: "0000-00-00 00:00:00",
-      work_order_date: "2026-02-01 01:12:50",
-      work_done_description: "",
-      lng: 152.6862632,
-      lat: -27.6595746,
-      generated_job_id: "41339",
-      completion_date: "2026-02-10 12:53:30",
-      completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
-      unsuccessful_date: "0000-00-00 00:00:00",
-      payment_date: "2026-02-10 00:00:00",
-      payment_method: "Xero",
-      payment_amount: 340,
-      payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-      edit_date: "2026-02-11 06:11:17",
-      geo_is_valid: 1,
-      payment_note: "",
-      ready_to_invoice: "1",
-      ready_to_invoice_stamp: "2026-02-11 05:54:42",
-      company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
-      geo_country: "Australia",
-      geo_postcode: "4306",
-      geo_state: "QLD",
-      geo_city: "Willowbank",
-      geo_street: "Wigmore Street",
-      geo_number: "35",
-      payment_processed: 1,
-      payment_processed_stamp: "2026-02-11 05:56:45",
-      payment_received: 1,
-      payment_received_stamp: "2026-02-10 00:00:00",
-      total_invoice_amount: "340.0000",
-      job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
-      category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
-      queue_uuid: "",
-      queue_expiry_date: "0000-00-00 00:00:00",
-      badges:
-        '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
-      invoice_sent: true,
-      purchase_order_number: "",
-      invoice_sent_stamp: "2026-02-10 12:53:36",
-      queue_assigned_staff_uuid: "",
-      quote_sent_stamp: "0000-00-00 00:00:00",
-      quote_sent: false,
-      customfield_application_number: "",
-      customfield_lot: "0",
-      customfield_plan: "",
-      active_network_request_uuid: "",
-      customfield_lead_source: "",
-      customfield_xero_tracking_cat_1: "",
-      customfield_xero_tracking_cat_2: "HSTP Service",
-      related_knowledge_articles: false,
-      job_description:
-        "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
-      created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-    },
+    // {
+    //   uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
+    //   active: 1,
+    //   date: "2026-02-01 00:00:00",
+    //   job_address: "35 Wigmore St,\nWillowbank QLD 4306",
+    //   billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
+    //   status: "Completed",
+    //   quote_date: "0000-00-00 00:00:00",
+    //   work_order_date: "2026-02-01 01:12:50",
+    //   work_done_description: "",
+    //   lng: 152.6862632,
+    //   lat: -27.6595746,
+    //   generated_job_id: "41339",
+    //   completion_date: "2026-02-10 12:53:30",
+    //   completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
+    //   unsuccessful_date: "0000-00-00 00:00:00",
+    //   payment_date: "2026-02-10 00:00:00",
+    //   payment_method: "Xero",
+    //   payment_amount: 340,
+    //   payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+    //   edit_date: "2026-02-11 06:11:17",
+    //   geo_is_valid: 1,
+    //   payment_note: "",
+    //   ready_to_invoice: "1",
+    //   ready_to_invoice_stamp: "2026-02-11 05:54:42",
+    //   company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
+    //   geo_country: "Australia",
+    //   geo_postcode: "4306",
+    //   geo_state: "QLD",
+    //   geo_city: "Willowbank",
+    //   geo_street: "Wigmore Street",
+    //   geo_number: "35",
+    //   payment_processed: 1,
+    //   payment_processed_stamp: "2026-02-11 05:56:45",
+    //   payment_received: 1,
+    //   payment_received_stamp: "2026-02-10 00:00:00",
+    //   total_invoice_amount: "340.0000",
+    //   job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
+    //   category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
+    //   queue_uuid: "",
+    //   queue_expiry_date: "0000-00-00 00:00:00",
+    //   badges:
+    //     '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
+    //   invoice_sent: true,
+    //   purchase_order_number: "",
+    //   invoice_sent_stamp: "2026-02-10 12:53:36",
+    //   queue_assigned_staff_uuid: "",
+    //   quote_sent_stamp: "0000-00-00 00:00:00",
+    //   quote_sent: false,
+    //   customfield_application_number: "",
+    //   customfield_lot: "0",
+    //   customfield_plan: "",
+    //   active_network_request_uuid: "",
+    //   customfield_lead_source: "",
+    //   customfield_xero_tracking_cat_1: "",
+    //   customfield_xero_tracking_cat_2: "HSTP Service",
+    //   related_knowledge_articles: false,
+    //   job_description:
+    //     "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
+    //   created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+    // },
   ]
 ) {
   for (const record of records) {
@@ -250,6 +242,7 @@ async function processBatchDealInHubspot(
       // Upsert Deal in hubspot
       const upsertDeal = await upsertDealInHubspot(record);
       logger.info(`✅ Upserted Deal  ${JSON.stringify(upsertDeal, null, 2)}`);
+      return; // TODO Remove after testing
     } catch (error) {
       logger.error("❌ Error processing Job:", {
         status: error?.status,
@@ -460,10 +453,42 @@ async function syncContact({ log = logger } = {}) {
     log.error("❌ Error processing Contact in Batch", error);
   }
 }
+
+async function searchInHubspot(
+  endpoint,
+  propertyName,
+  propertyValue,
+  axiosInstance = getHSAxios()
+) {
+  try {
+    const url = `/crm/v3/objects/${endpoint}/search`;
+    const filterGroups = [
+      {
+        filters: [
+          {
+            propertyName: propertyName,
+            operator: "EQ",
+            value: propertyValue,
+          },
+        ],
+      },
+    ];
+    const response = await axiosInstance.post(url, {
+      filterGroups,
+      params: { limit: 1, after: "" },
+    });
+    const records = response.data?.results || [];
+    logger.info(`Search Result: ${JSON.stringify(records, null, 2)}`);
+    return records;
+  } catch (error) {
+    logger.error("❌ Error processing Search in Hubspot", error);
+  }
+}
 export {
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchNoteInHubspot,
   syncContact,
   hubspotGenerator,
+  searchInHubspot,
 };

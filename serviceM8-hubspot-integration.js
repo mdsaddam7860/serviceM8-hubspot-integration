@@ -4,7 +4,7 @@ dotenv.config({
   path: path.join(process.cwd(), ".env"),
 });
 import { app } from "./src/app.js";
-import { logger } from "./src/index.js";
+import { logger, searchInHubspot } from "./src/index.js";
 import { syncContact } from "./src/services/hubspot.service.js";
 import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
 import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
@@ -13,6 +13,7 @@ import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 import {
   syncCompaniesTask,
   syncServiceM8ClientToHubSpotAsContact,
+  syncServiceM8JobToHubSpotAsDeal,
 } from "./src/services/serviceM8.service.js";
 import { serviceM8Client } from "./src/configs/serviceM8.config.js";
 import { processBatchDealInHubspot } from "./src/services/hubspot.service.js";
@@ -35,7 +36,7 @@ function serverInit() {
 }
 
 serverInit();
-syncContact();
+searchInHubspot("contacts", "sourceid", "031c3925-2922-4515-b6e1-22bcbc60874b");
 
 async function init() {
   try {
@@ -53,7 +54,7 @@ async function init() {
       //   )}`
       // );
       // logger.info(`Client: ${JSON.stringify(serviceM8Client, null, 2)}`);
-      logger.info(`✅  client initialized successfully`);
+      logger.info(`✅  Configs initialized successfully`);
     } catch (error) {
       logger.error("❌ HubSpot client failed to initialize:", error);
     }

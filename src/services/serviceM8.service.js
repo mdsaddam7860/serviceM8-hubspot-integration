@@ -1,7 +1,10 @@
-import { logger } from "../index.js";
+import { logger, delta, currentDate } from "../index.js";
 import { getServiceM8Client } from "../configs/serviceM8.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
-import { processBatchContactInHubspot } from "./hubspot.service.js";
+import {
+  processBatchContactInHubspot,
+  processBatchDealInHubspot,
+} from "./hubspot.service.js";
 
 const clientEndpoint = "company.json";
 const jobsEndpoint = "job.json";
@@ -116,11 +119,11 @@ async function* serviceM8Generator(
 
       nextCursor = response.headers["x-next-cursor"];
 
-      log.info(`[ServiceM8 Progress] ${endpoint}`, {
-        page: pageCount,
-        processed: totalProcessed,
-        speed: `${recordsPerSecond} rec/sec`,
-      });
+      // log.info(`[ServiceM8 Progress] ${endpoint}`, {
+      //   page: pageCount,
+      //   processed: totalProcessed,
+      //   speed: `${recordsPerSecond} rec/sec`,
+      // });
     }
   } catch (error) {
     log.error(`Stream interrupted at page ${pageCount}`, {
@@ -208,17 +211,68 @@ const syncServiceM8ToHubSpot = async () => {
 
 async function syncServiceM8ClientToHubSpotAsContact() {
   try {
-    const companyStream = serviceM8Generator("company.json");
+    const endpoint = "company.json";
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+
+    const previousDate = date.toISOString().split("T")[0];
+    logger.info(`Getting records after: ${previousDate}`);
+    const companyStream = serviceM8Generator(
+      `${endpoint}?$filter=edit_date gt ${previousDate}`
+    );
 
     for await (const { records, stats } of companyStream) {
-      // await processBatchContactInHubspot(records);
-      console.clear();
-      logger.info(
-        `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
-      );
-      logger.info(
-        `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
-      );
+      await processBatchContactInHubspot(records);
+      // console.clear();
+      // logger.info(
+      //   `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
+      // );
+      // logger.info(
+      //   `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+      // );
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+    }
+
+    logger.info("✅ Full sync successful.");
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+    throw error;
+  }
+}
+async function syncServiceM8JobToHubSpotAsDeal() {
+  try {
+    const current_date = currentDate();
+    logger.info(`Getting records : ${current_date}`);
+
+    const endpoint = `job.json?$filter=date eq ${current_date}`;
+
+    const jobStream = serviceM8Generator(endpoint);
+
+    for await (const { records, stats } of jobStream) {
+      await processBatchDealInHubspot(records);
+      // console.clear();
+      // logger.info(
+      //   `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
+      // );
+      // logger.info(
+      //   `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+      // );
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
     }
 
     logger.info("✅ Full sync successful.");
@@ -243,4 +297,5 @@ export {
   syncCompaniesTask,
   syncServiceM8ToHubSpot,
   syncServiceM8ClientToHubSpotAsContact,
+  syncServiceM8JobToHubSpotAsDeal,
 };
