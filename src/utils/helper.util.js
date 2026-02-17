@@ -55,4 +55,26 @@ function cleanProps(obj) {
   );
 }
 
-export { delta, currentDate, contactProperties, dealProperties, cleanProps };
+const filePath = `${process.cwd()}/lastSyncTime.json`;
+
+function getLastSyncTime() {
+  // get date and time one hour ago and save it into file
+  console.log("CWD", process.cwd());
+  const data = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(data);
+}
+
+function saveLastSyncTime() {
+  const data = JSON.stringify(currentDate());
+  fs.writeFileSync(filePath, data);
+}
+
+export {
+  delta,
+  currentDate,
+  contactProperties,
+  dealProperties,
+  cleanProps,
+  getLastSyncTime,
+  saveLastSyncTime,
+};
