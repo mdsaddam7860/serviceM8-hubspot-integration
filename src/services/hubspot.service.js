@@ -1,4 +1,9 @@
-import { logger, contactMappingSM8ToHS, dealMappingSM8ToHS } from "../index.js";
+import {
+  logger,
+  contactMappingSM8ToHS,
+  dealMappingSM8ToHS,
+  activityMappingSM8ToHS,
+} from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 
@@ -80,41 +85,42 @@ async function upsertDealInHubspot(record = {}) {
     throw error;
   }
 }
-async function upsertNoteInHubspot() {
+async function upsertActivityInHubspot(endpoint, record = {}) {
   try {
     // Find Notes if exist update else create deal
     const hs_client = getHubspotClient();
 
-    const notes = hs_client.customObject("notes");
+    const notes = hs_client.customObject(`${endpoint}`);
 
-    const sourceid = record?.uuid;
+    // const sourceid = record?.uuid;
     // ❌ Create payload before testing and check if i only need to create notes (or update it also?)
-    const payload = {
-      note: record?.note,
-      sourceid: sourceid,
-    };
-
+    // const payload = {
+    //   note: record?.note,
+    //   sourceid: sourceid,
+    // };
+    const payload = activityMappingSM8ToHS(record);
+    logger.info(`payload: ${JSON.stringify(payload, null, 2)}`);
     // search Note based on sourceid
 
-    const existingNote = await notes.getCustomObjectByCustomField(
-      "sourceid",
-      sourceid
-    );
+    // const existingNote = await notes.getCustomObjectByCustomField(
+    //   "sourceid",
+    //   sourceid
+    // );
 
-    if (existingNote) {
-      logger.info(`Existing deal: ${JSON.stringify(existingNote, null, 2)}`);
-      const result = await notes.update(existingNote?.id, payload);
-      logger.info(`Created deal: ${JSON.stringify(result, null, 2)}`);
+    // if (existingNote) {
+    //   logger.info(`Existing deal: ${JSON.stringify(existingNote, null, 2)}`);
+    //   const result = await notes.update(existingNote?.id, payload);
+    //   logger.info(`Created deal: ${JSON.stringify(result, null, 2)}`);
 
-      // return await notes.update(existingNote?.id, payload);
-    } else {
-      // create  contact
-      const result = await notes.create(payload);
-      logger.info(`Created deal: ${JSON.stringify(result, null, 2)}`);
-      // return await notes.createContact(payload);
-    }
+    //   // return await notes.update(existingNote?.id, payload);
+    // } else {
+    // create  contact
+    return await notes.create(payload);
+    // logger.info(`Created Activity: ${JSON.stringify(result, null, 2)}`);
+    // return await notes.createContact(payload);
+    // }
   } catch (error) {
-    logger.error("❌ HubSpot Note failed to upsert", {
+    logger.error(`"❌ HubSpot Note failed to Create`, {
       status: error?.status,
       response: error.response?.data,
       method: error?.method,
@@ -254,7 +260,7 @@ async function processBatchDealInHubspot(
     }
   }
 }
-async function processBatchNoteInHubspot(
+async function processBatchActivityInHubspot(
   records = [
     {
       uuid: "0049830c-60a4-426b-a91c-23b7001c8b0a",
@@ -265,18 +271,82 @@ async function processBatchNoteInHubspot(
       note: "System alarming on arrival, pump has failed. Replaced d25 with reefe 250.",
       action_required: "0",
       action_completed_by_staff_uuid: "",
-      related_object: "job",
+      related_object: "company",
       related_object_uuid: "72030075-36bd-4d42-924c-23b6cc64b8ad",
     },
   ]
 ) {
-  for (const [record, index] of records) {
+  const hs_client = getHubspotClient();
+  for (const record of records) {
     try {
       logger.info(`✅ Processing Note  ${JSON.stringify(record, null, 2)}`);
 
       // Upsert Note in hubspot
-      const upsertNote = await upsertNoteInHubspot(record);
-      logger.info(`✅ Upserted Deal  ${JSON.stringify(upsertNote, null, 2)}`);
+      const upsertNote = await upsertActivityInHubspot("notes", record);
+      logger.info(
+        `✅ Upserted Activity  ${JSON.stringify(upsertNote, null, 2)}`
+      );
+
+      // fetch contacts and deal then associate it.
+      const relatedObject = record.related_object?.trim().toLowerCase();
+
+      if (relatedObject == "company") {
+        const existingContact = await searchInHubspot(
+          "contacts",
+          "sourceid",
+          record.related_object_uuid
+        );
+
+        // logger.info(
+        //   `✅ Existing Contact  ${JSON.stringify(existingContact, null, 2)}`
+        // );
+
+        if (existingContact && existingContact.length > 0 && upsertNote?.id) {
+          // Associate activity with contact
+          const associate = await hs_client.associations.associate(
+            "contacts",
+            existingContact[0]?.id,
+            "notes",
+            upsertNote?.id,
+            "201",
+            "HUBSPOT_DEFINED"
+          );
+          logger.info(
+            `✅ Associate Note ${upsertNote?.id} with Contact ${
+              existingContact[0]?.id
+            }  ${JSON.stringify(associate, null, 2)}`
+          );
+        }
+      }
+      if (relatedObject === "job") {
+        const existingDeal = await searchInHubspot(
+          "deals",
+          "sourceid",
+          record.related_object_uuid
+        );
+        // logger.info(
+        //   `✅ Existing Deal  ${JSON.stringify(existingDeal, null, 2)}`
+        // );
+
+        if (existingDeal.length > 0 && upsertNote?.id) {
+          // Associate activity with contact
+          const associate = await hs_client.associations.associate(
+            "deals",
+            existingDeal[0]?.id,
+            "notes",
+            upsertNote?.id,
+            "213",
+            "HUBSPOT_DEFINED"
+          );
+          logger.info(
+            `✅ Associate Note ${upsertNote?.id} with deal ${
+              existingDeal[0]?.id
+            }  ${JSON.stringify(associate, null, 2)}`
+          );
+        }
+      }
+
+      return; // TODO Remove after testing
     } catch (error) {
       logger.error(`❌ Error processing Note:${record?.uuid}`, {
         status: error?.status,
@@ -478,7 +548,7 @@ async function searchInHubspot(
       params: { limit: 1, after: "" },
     });
     const records = response.data?.results || [];
-    logger.info(`Search Result: ${JSON.stringify(records, null, 2)}`);
+    // logger.info(`Search Result: ${JSON.stringify(records, null, 2)}`);
     return records;
   } catch (error) {
     logger.error("❌ Error processing Search in Hubspot", error);
@@ -487,7 +557,7 @@ async function searchInHubspot(
 export {
   processBatchContactInHubspot,
   processBatchDealInHubspot,
-  processBatchNoteInHubspot,
+  processBatchActivityInHubspot,
   syncContact,
   hubspotGenerator,
   searchInHubspot,

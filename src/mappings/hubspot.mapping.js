@@ -138,4 +138,30 @@ function dealMappingSM8ToHS(record) {
   //   return { properties: payload };
 }
 
-export { contactMappingSM8ToHS, dealMappingSM8ToHS };
+/**
+ * 
+ * uuid: "0049830c-60a4-426b-a91c-23b7001c8b0a",
+      edit_by_staff_uuid: "4981eca6-f6d2-43aa-a1e6-20bb3dce008b",
+      create_date: "2026-01-13 14:10:21",
+      edit_date: "2026-01-13 14:10:21",
+      active: 1,
+      note: "System alarming on arrival, pump has failed. Replaced d25 with reefe 250.",
+      action_required: "0",
+      action_completed_by_staff_uuid: "",
+      related_object: "job",
+      related_object_uuid: "72030075-36bd-4d42-924c-23b6cc64b8ad",
+ */
+function activityMappingSM8ToHS(record = {}) {
+  const formattedTimestamp = new Date(
+    record.create_date.replace(" ", "T") + "Z"
+  ).getTime();
+  const payload = cleanProps({
+    hs_note_body: record?.note,
+    hs_timestamp: formattedTimestamp,
+  });
+
+  return payload;
+  //   return { properties: payload };
+}
+
+export { contactMappingSM8ToHS, dealMappingSM8ToHS, activityMappingSM8ToHS };

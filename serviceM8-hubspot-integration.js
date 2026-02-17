@@ -14,9 +14,13 @@ import {
   syncCompaniesTask,
   syncServiceM8ClientToHubSpotAsContact,
   syncServiceM8JobToHubSpotAsDeal,
+  syncServiceM8NoteToHubSpotAsActivity,
 } from "./src/services/serviceM8.service.js";
 import { serviceM8Client } from "./src/configs/serviceM8.config.js";
-import { processBatchDealInHubspot } from "./src/services/hubspot.service.js";
+import {
+  processBatchDealInHubspot,
+  processBatchActivityInHubspot,
+} from "./src/services/hubspot.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -36,7 +40,8 @@ function serverInit() {
 }
 
 serverInit();
-searchInHubspot("contacts", "sourceid", "031c3925-2922-4515-b6e1-22bcbc60874b");
+// searchInHubspot("contacts", "sourceid", "031c3925-2922-4515-b6e1-22bcbc60874b");
+syncServiceM8NoteToHubSpotAsActivity();
 
 async function init() {
   try {

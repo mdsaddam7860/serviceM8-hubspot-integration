@@ -10,6 +10,7 @@ import {
 import {
   contactMappingSM8ToHS,
   dealMappingSM8ToHS,
+  activityMappingSM8ToHS,
 } from "./mappings/hubspot.mapping.js";
 import { delta, currentDate } from "./utils/helper.util.js";
 import { searchInHubspot } from "./services/hubspot.service.js";
@@ -27,5 +28,6 @@ export {
   createRequestExecutor,
   contactMappingSM8ToHS,
   dealMappingSM8ToHS,
+  activityMappingSM8ToHS,
   searchInHubspot,
 };

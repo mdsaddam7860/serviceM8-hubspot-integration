@@ -1,8 +1,9 @@
 function delta() {
   const date = new Date();
-  date.setDate(date.getDate() - 1);
+  date.setDate(date.getDate() - 9);
 
-  return (previousDate = date.toISOString().split("T")[0]);
+  const previousDate = date.toISOString().split("T")[0];
+  return previousDate;
 }
 function currentDate() {
   const date = new Date();

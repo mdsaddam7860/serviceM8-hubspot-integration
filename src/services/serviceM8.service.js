@@ -4,6 +4,7 @@ import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 import {
   processBatchContactInHubspot,
   processBatchDealInHubspot,
+  processBatchActivityInHubspot,
 } from "./hubspot.service.js";
 
 const clientEndpoint = "company.json";
@@ -288,6 +289,44 @@ async function syncServiceM8JobToHubSpotAsDeal() {
     throw error;
   }
 }
+async function syncServiceM8NoteToHubSpotAsActivity() {
+  try {
+    const current_date = delta();
+    logger.info(`Getting records : ${current_date}`);
+
+    const endpoint = `note.json?$filter=edit_date gt ${current_date}`;
+
+    const jobStream = serviceM8Generator(endpoint);
+
+    for await (const { records, stats } of jobStream) {
+      await processBatchActivityInHubspot(records);
+      // console.clear();
+      // logger.info(
+      //   `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
+      // );
+      // logger.info(
+      //   `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+      // );
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+    }
+
+    logger.info("✅ Full sync successful.");
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+    throw error;
+  }
+}
 
 export {
   getAllClient,
@@ -298,4 +337,5 @@ export {
   syncServiceM8ToHubSpot,
   syncServiceM8ClientToHubSpotAsContact,
   syncServiceM8JobToHubSpotAsDeal,
+  syncServiceM8NoteToHubSpotAsActivity,
 };
