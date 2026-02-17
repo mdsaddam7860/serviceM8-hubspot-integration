@@ -11,19 +11,23 @@ import {
   contactMappingSM8ToHS,
   dealMappingSM8ToHS,
   activityMappingSM8ToHS,
-} from "./mappings/hubspot.mapping.js";
+  companyMappingSM8ToHS,
+} from "./mappings/hubspot.mapping.js"; // Hubspot Mapping functions
 
-import { clientMappingHSTOSM8 } from "./mappings/serviceM8.mapping.js";
+import { clientMappingHSTOSM8 } from "./mappings/serviceM8.mapping.js"; // serviceM8 Mapping functions
 import {
   delta,
   currentDate,
   contactProperties,
   dealProperties,
+  companyProperties,
   cleanProps,
-} from "./utils/helper.util.js";
-import { searchInHubspot } from "./services/hubspot.service.js";
+} from "./utils/helper.util.js"; // Helper functions
+import { searchInHubspot } from "./services/hubspot.service.js"; // Hubspot Services
 
 export {
+  companyMappingSM8ToHS,
+  companyProperties,
   cleanProps,
   clientMappingHSTOSM8,
   dealProperties,

@@ -3,6 +3,7 @@ import {
   contactMappingSM8ToHS,
   dealMappingSM8ToHS,
   activityMappingSM8ToHS,
+  companyMappingSM8ToHS,
   contactProperties,
   dealProperties,
 } from "../index.js";
@@ -15,7 +16,7 @@ import {
 
 async function upsertContactInHubspot(record = {}) {
   try {
-    // Find contact if exist update else create deal
+    // Find contact if exist update else create contact, first search based on phone number then email
     const hs_client = getHubspotClient();
 
     const sourceid = record?.uuid;
@@ -48,6 +49,45 @@ async function upsertContactInHubspot(record = {}) {
     }
   } catch (error) {
     logger.error("❌ HubSpot Contact failed to upsert:", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+    });
+    throw error;
+  }
+}
+async function upsertCompanyInHubspot(record = {}) {
+  try {
+    // Find company if exist update else create company
+    const hs_client = getHubspotClient();
+
+    const sourceid = record?.uuid;
+    const payload = companyMappingSM8ToHS(record); // Change to company
+    // const payload = {
+    //   firstname: record?.name,
+    //   sourceid: sourceid,
+    // };
+
+    // search company based on sourceid
+
+    const existingContact = await hs_client.companies.getCompanyByCustomField(
+      "sourceid",
+      sourceid
+    );
+
+    if (existingContact) {
+      return await hs_client.companies.updateCompany(
+        existingContact?.id,
+        payload
+      );
+    } else {
+      // create  contact
+      return await hs_client.companies.createCompany(payload);
+    }
+  } catch (error) {
+    logger.error("❌ HubSpot Company failed to upsert:", {
       status: error?.status,
       response: error.response?.data,
       method: error?.method,
@@ -173,6 +213,53 @@ async function processBatchContactInHubspot(
       );
     } catch (error) {
       logger.error("❌ Error processing contact:", {
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+      });
+    }
+  }
+}
+async function processBatchCompanyInHubspot(
+  records = [
+    {
+      uuid: "0004567a-2c25-4d1c-bdad-1cd4559a391b",
+      edit_date: "2021-03-22 14:36:20",
+      name: "Tracey Dorge",
+      website: "",
+      abn_number: "",
+      address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+      address_street: "17 Tarrawarrah Avenue",
+      address_city: "Tallai",
+      address_state: "Queensland",
+      address_postcode: "",
+      address_country: "Australia",
+      billing_address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+      active: 1,
+      is_individual: 0,
+      badges: "",
+      fax_number: "",
+      tax_rate_uuid: "",
+      billing_attention: "0",
+      payment_terms: "COD",
+      parent_company_uuid: "",
+    },
+  ]
+) {
+  for (const record of records) {
+    try {
+      logger.info(`✅ Processing Company  ${JSON.stringify(record, null, 2)}`);
+
+      // Upsert Contact in hubspot
+      const upsertCompany = await upsertCompanyInHubspot(record);
+      logger.info(
+        `✅ Upserted Company  ${JSON.stringify(upsertCompany, null, 2)}`
+      );
+      return; // TODO Remove after testing
+    } catch (error) {
+      logger.error("❌ Error processing Company:", {
         status: error?.status,
         response: error.response?.data,
         method: error?.method,
@@ -631,7 +718,14 @@ async function syncContact({ log = logger } = {}) {
       log.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
     }
   } catch (error) {
-    log.error("❌ Error processing Contact in Batch", error);
+    log.error("❌ Error processing Contact in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
   }
 }
 
@@ -734,7 +828,14 @@ async function syncHubspotContactToServiceM8Client() {
       // return;
     }
   } catch (error) {
-    logger.error("❌ Error processing Deal in Batch", error);
+    logger.error("❌ Error processing Deal in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
   }
 }
 export {
@@ -746,4 +847,5 @@ export {
   hubspotGenerator,
   searchInHubspot,
   syncHubspotDealToServiceM8Job,
+  processBatchCompanyInHubspot,
 };

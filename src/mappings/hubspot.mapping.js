@@ -38,68 +38,24 @@ function contactMappingSM8ToHS(record) {
   //   return { properties: payload };
 }
 
-/**
- * 
- * uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
-      active: 1,
-      date: "2026-02-01 00:00:00",
-      job_address: "35 Wigmore St,\nWillowbank QLD 4306",
-      billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
-      status: "Completed",
-      quote_date: "0000-00-00 00:00:00",
-      work_order_date: "2026-02-01 01:12:50",
-      work_done_description: "",
-      lng: 152.6862632,
-      lat: -27.6595746,
-      generated_job_id: "41339",
-      completion_date: "2026-02-10 12:53:30",
-      completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
-      unsuccessful_date: "0000-00-00 00:00:00",
-      payment_date: "2026-02-10 00:00:00",
-      payment_method: "Xero",
-      payment_amount: 340,
-      payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-      edit_date: "2026-02-11 06:11:17",
-      geo_is_valid: 1,
-      payment_note: "",
-      ready_to_invoice: "1",
-      ready_to_invoice_stamp: "2026-02-11 05:54:42",
-      company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
-      geo_country: "Australia",
-      geo_postcode: "4306",
-      geo_state: "QLD",
-      geo_city: "Willowbank",
-      geo_street: "Wigmore Street",
-      geo_number: "35",
-      payment_processed: 1,
-      payment_processed_stamp: "2026-02-11 05:56:45",
-      payment_received: 1,
-      payment_received_stamp: "2026-02-10 00:00:00",
-      total_invoice_amount: "340.0000",
-      job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
-      category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
-      queue_uuid: "",
-      queue_expiry_date: "0000-00-00 00:00:00",
-      badges:
-        '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
-      invoice_sent: true,
-      purchase_order_number: "",
-      invoice_sent_stamp: "2026-02-10 12:53:36",
-      queue_assigned_staff_uuid: "",
-      quote_sent_stamp: "0000-00-00 00:00:00",
-      quote_sent: false,
-      customfield_application_number: "",
-      customfield_lot: "0",
-      customfield_plan: "",
-      active_network_request_uuid: "",
-      customfield_lead_source: "",
-      customfield_xero_tracking_cat_1: "",
-      customfield_xero_tracking_cat_2: "HSTP Service",
-      related_knowledge_articles: false,
-      job_description:
-        "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
-      created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
- *  */
+function companyMappingSM8ToHS(record) {
+  const payload = cleanProps({
+    sourceid: record?.uuid,
+    // email: record?.email,
+    name: record?.name,
+    domain: record?.website,
+    address: record?.address_street,
+    city: record?.address_city,
+    state: record?.address_state,
+    // fax: record?.fax_number,
+    country: record?.address_country,
+    zip: record?.address_postcode,
+  });
+
+  return payload;
+  //   return { properties: payload };
+}
+
 function dealMappingSM8ToHS(record) {
   const payload = cleanProps({
     sourceid: record?.uuid,
@@ -139,4 +95,9 @@ function activityMappingSM8ToHS(record = {}) {
   //   return { properties: payload };
 }
 
-export { contactMappingSM8ToHS, dealMappingSM8ToHS, activityMappingSM8ToHS };
+export {
+  contactMappingSM8ToHS,
+  dealMappingSM8ToHS,
+  activityMappingSM8ToHS,
+  companyMappingSM8ToHS,
+};

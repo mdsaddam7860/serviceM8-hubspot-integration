@@ -27,6 +27,20 @@ function contactProperties() {
 function dealProperties() {
   return ["sourceid", "dealname", "dealstage", "amount", "hs_lastmodifieddate"];
 }
+function companyProperties() {
+  return [
+    "sourceid",
+    "about_us",
+    "city",
+    "domain",
+    "name",
+    "country",
+    "hs_country_code",
+    "description",
+    "address",
+    "zip",
+  ];
+}
 
 function cleanProps(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -70,6 +84,7 @@ function saveLastSyncTime() {
 }
 
 export {
+  companyProperties,
   delta,
   currentDate,
   contactProperties,
