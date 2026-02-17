@@ -1,30 +1,5 @@
-import { logger } from "../index.js";
-function cleanProps(obj) {
-  if (!obj || typeof obj !== "object") return obj;
+import { logger, cleanProps } from "../index.js";
 
-  return Object.fromEntries(
-    Object.entries(obj).filter(([_, value]) => {
-      // Remove null or undefined
-      if (value === null || value === undefined) return false;
-
-      // Remove empty string
-      if (typeof value === "string" && value.trim() === "") return false;
-
-      // Remove empty array
-      if (Array.isArray(value) && value.length === 0) return false;
-
-      // Remove empty object
-      if (
-        typeof value === "object" &&
-        !Array.isArray(value) &&
-        Object.keys(value).length === 0
-      )
-        return false;
-
-      return true;
-    })
-  );
-}
 function extractName(fullName = "") {
   if (typeof fullName !== "string") {
     return { firstName: "", lastName: "" };

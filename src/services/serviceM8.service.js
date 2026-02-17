@@ -1,4 +1,4 @@
-import { logger, delta, currentDate } from "../index.js";
+import { logger, delta, currentDate, clientMappingHSTOSM8 } from "../index.js";
 import { getServiceM8Client } from "../configs/serviceM8.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 import {
@@ -210,6 +210,7 @@ const syncServiceM8ToHubSpot = async () => {
   return { totalSynced: total };
 };
 
+// ✅ Fetch Client from serviceM8 and sync to Hubspot as Contact
 async function syncServiceM8ClientToHubSpotAsContact() {
   try {
     const endpoint = "company.json";
@@ -251,6 +252,7 @@ async function syncServiceM8ClientToHubSpotAsContact() {
     throw error;
   }
 }
+// ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
 async function syncServiceM8JobToHubSpotAsDeal() {
   try {
     const current_date = currentDate();
@@ -262,13 +264,7 @@ async function syncServiceM8JobToHubSpotAsDeal() {
 
     for await (const { records, stats } of jobStream) {
       await processBatchDealInHubspot(records);
-      // console.clear();
-      // logger.info(
-      //   `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
-      // );
-      // logger.info(
-      //   `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
-      // );
+
       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
@@ -276,7 +272,7 @@ async function syncServiceM8JobToHubSpotAsDeal() {
       });
     }
 
-    logger.info("✅ Full sync successful.");
+    // logger.info("✅ Full sync successful.");
   } catch (error) {
     logger.error(`❌ Full sync failed.`, {
       status: error?.status,
@@ -289,6 +285,7 @@ async function syncServiceM8JobToHubSpotAsDeal() {
     throw error;
   }
 }
+// ✅ Fetch Note from serviceM8 and sync to Hubspot as Activity
 async function syncServiceM8NoteToHubSpotAsActivity() {
   try {
     const current_date = delta();
@@ -328,7 +325,108 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
   }
 }
 
+async function searchInServiceM8(endpoint, uuid) {
+  if (!endpoint || !uuid) {
+    logger.warn("Missing endpoint or uuid");
+    return null;
+  }
+  const query = `${endpoint}/${uuid}`;
+  try {
+    const serviceM8client = getServiceM8Client();
+    const response = await serviceM8client.get(query);
+    logger.info(`Fetched ${query} : ${JSON.stringify(response.data, null, 2)}`);
+    return response.data;
+  } catch (error) {
+    logger.error(`❌ failed to fetch ${query}:${uuid}`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      // message: error.message,
+    });
+    throw error;
+  }
+}
+
+async function upsertjobInServiceM8(record = {}) {
+  try {
+    const payload = jobMappingHSTOSM8(record);
+    const serviceM8client = getServiceM8Client();
+
+    const response = await serviceM8client.post("job.json", payload);
+    logger.info(`Upsert job : ${JSON.stringify(response.data, null, 2)}`);
+
+    return response.data;
+  } catch (error) {
+    logger.error("❌ Error processing Deal in Batch", error);
+    throw error;
+  }
+}
+
+async function processBatchDealInServiceM8(records) {
+  try {
+    for (const [record, index] of records.entries()) {
+      logger.info(`Processing  ${index} : ${JSON.stringify(record, null, 2)}`);
+      const upsertJob = await upsertjobInServiceM8(record);
+      logger.info(`Upserted : ${JSON.stringify(upsertJob, null, 2)}`);
+      return; // TODO Remove after testing
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Deal in Batch", error);
+  }
+}
+
+async function upsertClientInServiceM8(record = {}) {
+  try {
+    const payload = clientMappingHSTOSM8(record);
+    const serviceM8client = getServiceM8Client();
+
+    logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
+
+    const response = await serviceM8Executor(
+      () => serviceM8client.post("company.json", payload),
+      { name: "upsertClientInServiceM8" }
+    );
+    // logger.info(`Upsert job : ${JSON.stringify(response, null, 2)}`);
+    // console.log("response", response);
+
+    return response.data;
+  } catch (error) {
+    logger.error("❌ Error processing Client in Batch", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+    throw error;
+  }
+}
+async function processBatchContactInServiceM8(records = []) {
+  try {
+    for (const [index, record] of records.entries()) {
+      logger.info(
+        `Processing at index  ${index} : ${JSON.stringify(record, null, 2)}`
+      );
+      const upsertClient = await upsertClientInServiceM8(record);
+      logger.info(`Upserted Client : ${JSON.stringify(upsertClient, null, 2)}`);
+      return;
+    }
+  } catch (error) {
+    logger.error(`❌ Error processing Client in Batch`, {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+  }
+}
+
 export {
+  processBatchContactInServiceM8,
+  processBatchDealInServiceM8,
   getAllClient,
   getAllJobs,
   getAllStaffs,
@@ -338,4 +436,6 @@ export {
   syncServiceM8ClientToHubSpotAsContact,
   syncServiceM8JobToHubSpotAsDeal,
   syncServiceM8NoteToHubSpotAsActivity,
+  searchInServiceM8,
+  upsertjobInServiceM8,
 };

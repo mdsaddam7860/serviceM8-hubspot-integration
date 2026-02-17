@@ -3,9 +3,15 @@ import {
   contactMappingSM8ToHS,
   dealMappingSM8ToHS,
   activityMappingSM8ToHS,
+  contactProperties,
+  dealProperties,
 } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
+import {
+  searchInServiceM8,
+  processBatchContactInServiceM8,
+} from "./serviceM8.service.js";
 
 async function upsertContactInHubspot(record = {}) {
   try {
@@ -291,62 +297,87 @@ async function processBatchActivityInHubspot(
       const relatedObject = record.related_object?.trim().toLowerCase();
 
       if (relatedObject == "company") {
+        let contactId = null;
         const existingContact = await searchInHubspot(
           "contacts",
           "sourceid",
           record.related_object_uuid
         );
+        contactId = existingContact[0]?.id;
 
         // logger.info(
         //   `✅ Existing Contact  ${JSON.stringify(existingContact, null, 2)}`
         // );
 
-        if (existingContact && existingContact.length > 0 && upsertNote?.id) {
+        if (!existingContact || !existingContact?.length > 0) {
+          // fetch client
+          const company = await searchInServiceM8(
+            "company.json",
+            record.related_object_uuid
+          );
+          // upsert contact
+          const upsert = await upsertContactInHubspot(company);
+          logger.info(
+            `✅ Upserted Contact  ${JSON.stringify(upsert, null, 2)}`
+          );
+          contactId = upsert?.id;
+        }
+
+        if (contactId && upsertNote?.id) {
           // Associate activity with contact
           const associate = await hs_client.associations.associate(
             "contacts",
-            existingContact[0]?.id,
+            contactId,
             "notes",
             upsertNote?.id,
             "201",
             "HUBSPOT_DEFINED"
           );
           logger.info(
-            `✅ Associate Note ${upsertNote?.id} with Contact ${
-              existingContact[0]?.id
-            }  ${JSON.stringify(associate, null, 2)}`
+            `✅ Associate Note ${
+              upsertNote?.id
+            } with Contact ${contactId}  ${JSON.stringify(associate, null, 2)}`
           );
         }
       }
       if (relatedObject === "job") {
+        let dealId = null;
         const existingDeal = await searchInHubspot(
           "deals",
           "sourceid",
           record.related_object_uuid
         );
-        // logger.info(
-        //   `✅ Existing Deal  ${JSON.stringify(existingDeal, null, 2)}`
-        // );
+        dealId = existingDeal[0]?.id;
 
-        if (existingDeal.length > 0 && upsertNote?.id) {
+        if (!existingDeal || existingDeal?.length > 0) {
+          // fetch job
+          const job = await searchInServiceM8(
+            "job.json",
+            record.related_object_uuid
+          );
+          // upsert deal
+          const upsert = await upsertDealInHubspot(job);
+          logger.info(`✅ Upserted Deal  ${JSON.stringify(upsert, null, 2)}`);
+          dealId = upsert?.id;
+        }
+
+        if (dealId && upsertNote?.id) {
           // Associate activity with contact
           const associate = await hs_client.associations.associate(
             "deals",
-            existingDeal[0]?.id,
+            dealId,
             "notes",
             upsertNote?.id,
             "213",
             "HUBSPOT_DEFINED"
           );
           logger.info(
-            `✅ Associate Note ${upsertNote?.id} with deal ${
-              existingDeal[0]?.id
-            }  ${JSON.stringify(associate, null, 2)}`
+            `✅ Associate Note ${
+              upsertNote?.id
+            } with deal ${dealId}  ${JSON.stringify(associate, null, 2)}`
           );
         }
       }
-
-      return; // TODO Remove after testing
     } catch (error) {
       logger.error(`❌ Error processing Note:${record?.uuid}`, {
         status: error?.status,
@@ -419,6 +450,7 @@ async function processBatchActivityInHubspot(
 
 async function* hubspotGenerator(
   endpoint,
+  properties = [],
   {
     axiosInstance = getHSAxios(),
     executor = hubspotExecutor,
@@ -437,7 +469,11 @@ async function* hubspotGenerator(
       const response = await executor(
         async () => {
           return await axiosInstance.get(endpoint, {
-            params: { limit: 100, after },
+            params: {
+              limit: 100,
+              after,
+              ...(properties.length && { properties: properties.join(",") }),
+            },
           });
         },
         { endpoint, page: pageCount }
@@ -552,13 +588,68 @@ async function searchInHubspot(
     return records;
   } catch (error) {
     logger.error("❌ Error processing Search in Hubspot", error);
+    throw error;
+  }
+}
+
+// ✅ Fetch deal from hubspot and sync to serviceM8 as Job
+async function syncHubspotDealToServiceM8Job() {
+  try {
+    const endpoint = "/crm/v3/objects/deals";
+    const properties = [
+      "sourceid",
+      "dealname",
+      "dealstage",
+      "amount",
+      "hs_latest_approval_status",
+    ];
+    const dealStream = hubspotGenerator(endpoint, properties);
+
+    for await (const { records, stats } of dealStream) {
+      // logger.info(`Processing a batch of ${records.length} Deals...`);
+      // logger.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
+      logger.info(
+        `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
+      );
+
+      // await processBatchDealInServiceM8(records);
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      return;
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Deal in Batch", error);
+  }
+}
+// ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
+async function syncHubspotContactToServiceM8Client() {
+  try {
+    const endpoint = "/crm/v3/objects/contacts";
+    const properties = contactProperties();
+    const contactStream = hubspotGenerator(endpoint, properties);
+
+    for await (const { records, stats } of contactStream) {
+      await processBatchContactInServiceM8(records);
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Deal in Batch", error);
   }
 }
 export {
+  syncHubspotContactToServiceM8Client,
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
   syncContact,
   hubspotGenerator,
   searchInHubspot,
+  syncHubspotDealToServiceM8Job,
 };
