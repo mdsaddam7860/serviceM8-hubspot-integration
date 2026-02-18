@@ -41,15 +41,14 @@ function contactMappingSM8ToHS(record) {
 function companyMappingSM8ToHS(record) {
   const payload = cleanProps({
     sourceid: record?.uuid,
-    // email: record?.email,
     name: record?.name,
     domain: record?.website,
     address: record?.address_street,
     city: record?.address_city,
     state: record?.address_state,
-    // fax: record?.fax_number,
     country: record?.address_country,
     zip: record?.address_postcode,
+    // fax: record?.fax_number,
   });
 
   return payload;
