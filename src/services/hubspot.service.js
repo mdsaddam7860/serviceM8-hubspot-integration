@@ -761,38 +761,38 @@ async function searchInHubspot(
   }
 }
 
-// ✅ Fetch deal from hubspot and sync to serviceM8 as Job
-async function syncHubspotDealToServiceM8Job() {
-  try {
-    const endpoint = "/crm/v3/objects/deals";
-    const properties = [
-      "sourceid",
-      "dealname",
-      "dealstage",
-      "amount",
-      "hs_latest_approval_status",
-    ];
-    const dealStream = hubspotGenerator(endpoint, properties);
+// ✅ Fetch deal from hubspot and sync to serviceM8 as Job, JOb would be only one way sync from HS-SM8
+// async function syncHubspotDealToServiceM8Job() {
+//   try {
+//     const endpoint = "/crm/v3/objects/deals";
+//     const properties = [
+//       "sourceid",
+//       "dealname",
+//       "dealstage",
+//       "amount",
+//       "hs_latest_approval_status",
+//     ];
+//     const dealStream = hubspotGenerator(endpoint, properties);
 
-    for await (const { records, stats } of dealStream) {
-      // logger.info(`Processing a batch of ${records.length} Deals...`);
-      // logger.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
-      logger.info(
-        `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
-      );
+//     for await (const { records, stats } of dealStream) {
+//       // logger.info(`Processing a batch of ${records.length} Deals...`);
+//       // logger.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
+//       logger.info(
+//         `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
+//       );
 
-      // await processBatchDealInServiceM8(records);
-      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
-        page: stats.page,
-        processed: stats.totalProcessed,
-        speed: `${stats.recordsPerSecond} rec/sec`,
-      });
-      return;
-    }
-  } catch (error) {
-    logger.error("❌ Error processing Deal in Batch", error);
-  }
-}
+//       // await processBatchDealInServiceM8(records);
+//       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+//         page: stats.page,
+//         processed: stats.totalProcessed,
+//         speed: `${stats.recordsPerSecond} rec/sec`,
+//       });
+//       return;
+//     }
+//   } catch (error) {
+//     logger.error("❌ Error processing Deal in Batch", error);
+//   }
+// }
 // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
 async function syncHubspotContactToServiceM8Client() {
   try {

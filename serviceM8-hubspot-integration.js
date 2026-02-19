@@ -50,7 +50,7 @@ serverInit();
 // searchInHubspot("contacts", "sourceid", "031c3925-2922-4515-b6e1-22bcbc60874b");
 // syncHubspotContactToServiceM8Client();
 // searchInServiceM8("company.json", "0004567a-2c25-4d1c-bdad-1cd4559a391b");
-syncServiceM8ClientToHubSpotAsCompany();
+// syncServiceM8ClientToHubSpotAsCompany();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client
