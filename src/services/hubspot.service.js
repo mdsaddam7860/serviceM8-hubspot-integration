@@ -14,7 +14,21 @@ import {
   processBatchContactInServiceM8,
 } from "./serviceM8.service.js";
 
-async function upsertContactInHubspot(record = {}) {
+async function upsertContactInHubspot(
+  record = {
+    edit_date: "2021-03-22 14:39:11",
+    active: 1,
+    is_primary_contact: "0",
+    company_uuid: "c8051127-d9cb-4570-be75-1cd45913d8db",
+    first: "",
+    last: "",
+    email: "dcrowhurst@bigpond.com",
+    phone: "0428634983",
+    mobile: "",
+    type: "BILLING",
+    uuid: "00447606-6c6d-4be3-8b4c-1cd45c7e0d1b",
+  }
+) {
   try {
     // Find contact if exist update else create contact, first search based on phone number then email
     const hs_client = getHubspotClient();
@@ -26,17 +40,34 @@ async function upsertContactInHubspot(record = {}) {
     //   sourceid: sourceid,
     // };
 
-    // search contact based on sourceid
+    // search contact based on phone number
 
-    const existingContact = await hs_client.contacts.getContactByCustomField(
-      "sourceid",
-      sourceid
+    let existingContact = await hs_client.contacts.getContactByCustomField(
+      "phone",
+      record.phone
     );
-    // const existingContact = await hs_client.contacts.searchContacts(
-    //   filterGroups,
-    //   ["sourceid", "name"],
-    //   1
+    // logger.info(
+    //   `existingContact found by phone: ${JSON.stringify(
+    //     existingContact,
+    //     null,
+    //     2
+    //   )}`
     // );
+    // search contact based on phone number if not found search based on email
+
+    if (!existingContact) {
+      existingContact = await hs_client.contacts.getContactByCustomField(
+        "email",
+        record.email
+      );
+      // logger.info(
+      //   `existingContact found by email: ${JSON.stringify(
+      //     existingContact,
+      //     null,
+      //     2
+      //   )}`
+      // );
+    }
 
     if (existingContact) {
       return await hs_client.contacts.updateContact(
@@ -179,26 +210,17 @@ async function upsertActivityInHubspot(endpoint, record = {}) {
 async function processBatchContactInHubspot(
   contacts = [
     {
-      uuid: "0004567a-2c25-4d1c-bdad-1cd4559a391b",
-      edit_date: "2021-03-22 14:36:20",
-      name: "Tracey Dorge",
-      website: "",
-      abn_number: "",
-      address: "17 Tarrawarrah Avenue\nTallai, Queensland",
-      address_street: "17 Tarrawarrah Avenue",
-      address_city: "Tallai",
-      address_state: "Queensland",
-      address_postcode: "",
-      address_country: "Australia",
-      billing_address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+      edit_date: "2021-03-22 14:39:11",
       active: 1,
-      is_individual: 0,
-      badges: "",
-      fax_number: "",
-      tax_rate_uuid: "",
-      billing_attention: "0",
-      payment_terms: "COD",
-      parent_company_uuid: "",
+      is_primary_contact: "0",
+      company_uuid: "c8051127-d9cb-4570-be75-1cd45913d8db",
+      first: "",
+      last: "",
+      email: "dcrowhurst@bigpond.com",
+      phone: "0428634983",
+      mobile: "",
+      type: "BILLING",
+      uuid: "00447606-6c6d-4be3-8b4c-1cd45c7e0d1b",
     },
   ]
 ) {
@@ -762,37 +784,37 @@ async function searchInHubspot(
 }
 
 // ✅ Fetch deal from hubspot and sync to serviceM8 as Job, JOb would be only one way sync from HS-SM8
-// async function syncHubspotDealToServiceM8Job() {
-//   try {
-//     const endpoint = "/crm/v3/objects/deals";
-//     const properties = [
-//       "sourceid",
-//       "dealname",
-//       "dealstage",
-//       "amount",
-//       "hs_latest_approval_status",
-//     ];
-//     const dealStream = hubspotGenerator(endpoint, properties);
+async function syncHubspotDealToServiceM8Job() {
+  try {
+    const endpoint = "/crm/v3/objects/deals";
+    const properties = [
+      "sourceid",
+      "dealname",
+      "dealstage",
+      "amount",
+      "hs_latest_approval_status",
+    ];
+    const dealStream = hubspotGenerator(endpoint, properties);
 
-//     for await (const { records, stats } of dealStream) {
-//       // logger.info(`Processing a batch of ${records.length} Deals...`);
-//       // logger.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
-//       logger.info(
-//         `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
-//       );
+    for await (const { records, stats } of dealStream) {
+      // logger.info(`Processing a batch of ${records.length} Deals...`);
+      // logger.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
+      logger.info(
+        `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
+      );
 
-//       // await processBatchDealInServiceM8(records);
-//       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
-//         page: stats.page,
-//         processed: stats.totalProcessed,
-//         speed: `${stats.recordsPerSecond} rec/sec`,
-//       });
-//       return;
-//     }
-//   } catch (error) {
-//     logger.error("❌ Error processing Deal in Batch", error);
-//   }
-// }
+      // await processBatchDealInServiceM8(records);
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      return;
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Deal in Batch", error);
+  }
+}
 // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
 async function syncHubspotContactToServiceM8Client() {
   try {

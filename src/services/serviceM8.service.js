@@ -369,6 +369,52 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
   }
 }
 
+// ✅ Fetch Client from serviceM8 and sync to Hubspot as Contact
+async function syncServiceM8CompanyContactToHubSpotAsContact() {
+  try {
+    const endpoint = "companycontact.json";
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+
+    const previousDate = date.toISOString().split("T")[0];
+    logger.info(`Getting records after: ${previousDate}`);
+    const companyStream = serviceM8Generator(endpoint);
+    // const companyStream = serviceM8Generator(
+    //   `${endpoint}?$filter=edit_date gt ${previousDate} and is_individual eq 1`
+    // );
+
+    for await (const { records, stats } of companyStream) {
+      logger.info(`Record: ${JSON.stringify(records[0], null, 2)}`);
+      await processBatchContactInHubspot(records);
+      // console.clear();
+      // logger.info(
+      //   `🚀 Syncing ServiceM8: ${stats.totalProcessed} records indexed... `
+      // );
+      // logger.info(
+      //   `⏱️ Time elapsed: ${stats.elapsedSeconds}s | Speed: ${stats.recordsPerSecond} rec/s`
+      // );
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      return;
+    }
+
+    logger.info("✅ Full sync successful.");
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+    throw error;
+  }
+}
+
 async function searchInServiceM8(endpoint, uuid) {
   if (!endpoint || !uuid) {
     logger.warn("Missing endpoint or uuid");
@@ -483,4 +529,5 @@ export {
   searchInServiceM8,
   upsertjobInServiceM8,
   syncServiceM8ClientToHubSpotAsCompany,
+  syncServiceM8CompanyContactToHubSpotAsContact,
 };
