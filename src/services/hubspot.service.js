@@ -11,62 +11,68 @@ import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
 import {
   searchInServiceM8,
+  searchInServiceM8UsingCustomField,
   processBatchContactInServiceM8,
 } from "./serviceM8.service.js";
 
 async function upsertContactInHubspot(
   record = {
-    edit_date: "2021-03-22 14:39:11",
+    uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
+    edit_date: "2021-08-17 13:02:29",
+    name: "Teresa Stanton",
+    website: "",
+    abn_number: "",
+    address: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    address_city: "",
+    address_state: "",
+    address_postcode: "",
+    address_country: "",
+    billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
     active: 1,
-    is_primary_contact: "0",
-    company_uuid: "c8051127-d9cb-4570-be75-1cd45913d8db",
-    first: "",
-    last: "",
-    email: "dcrowhurst@bigpond.com",
-    phone: "0428634983",
-    mobile: "",
-    type: "BILLING",
-    uuid: "00447606-6c6d-4be3-8b4c-1cd45c7e0d1b",
-  }
+    is_individual: 1,
+    badges: "",
+    fax_number: "",
+    tax_rate_uuid: "",
+    billing_attention: "0",
+    payment_terms: "",
+    parent_company_uuid: "",
+  },
+  contactInfo = {}
 ) {
   try {
     // Find contact if exist update else create contact, first search based on phone number then email
     const hs_client = getHubspotClient();
 
-    const sourceid = record?.uuid;
-    const payload = contactMappingSM8ToHS(record);
-    // const payload = {
-    //   firstname: record?.name,
-    //   sourceid: sourceid,
-    // };
+    const payload = contactMappingSM8ToHS(record, contactInfo);
 
     // search contact based on phone number
 
     let existingContact = await hs_client.contacts.getContactByCustomField(
       "phone",
-      record.phone
+      contactInfo.phone
     );
-    // logger.info(
-    //   `existingContact found by phone: ${JSON.stringify(
-    //     existingContact,
-    //     null,
-    //     2
-    //   )}`
-    // );
+    logger.info(
+      `existingContact found by phone: ${JSON.stringify(
+        existingContact,
+        null,
+        2
+      )}`
+    );
     // search contact based on phone number if not found search based on email
 
     if (!existingContact) {
       existingContact = await hs_client.contacts.getContactByCustomField(
         "email",
-        record.email
+        contactInfo.email
       );
-      // logger.info(
-      //   `existingContact found by email: ${JSON.stringify(
-      //     existingContact,
-      //     null,
-      //     2
-      //   )}`
-      // );
+      logger.info(
+        `existingContact found by email: ${JSON.stringify(
+          existingContact,
+          null,
+          2
+        )}`
+      );
     }
 
     if (existingContact) {
@@ -85,17 +91,57 @@ async function upsertContactInHubspot(
       method: error?.method,
       url: error?.config?.url,
       headers: error?.config?.headers,
+      stack: error,
     });
     throw error;
   }
 }
-async function upsertCompanyInHubspot(record = {}) {
+async function upsertCompanyInHubspot(
+  record = {
+    uuid: "0004567a-2c25-4d1c-bdad-1cd4559a391b",
+    edit_date: "2021-03-22 14:36:20",
+    name: "Tracey Dorge",
+    website: "",
+    abn_number: "",
+    address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+    address_street: "17 Tarrawarrah Avenue",
+    address_city: "Tallai",
+    address_state: "Queensland",
+    address_postcode: "",
+    address_country: "Australia",
+    billing_address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+    active: 1,
+    is_individual: 0,
+    badges: "",
+    fax_number: "",
+    tax_rate_uuid: "",
+    billing_attention: "0",
+    payment_terms: "COD",
+    parent_company_uuid: "",
+  },
+  contactInfo = {}
+) {
   try {
     // Find company if exist update else create company
     const hs_client = getHubspotClient();
 
+    // Find contact info from serviceM8
+    // const query = "companycontact.json";
+    // const contactInfo = await searchInServiceM8UsingCustomField(
+    //   query,
+    //   "company_uuid",
+    //   record?.uuid
+    // );
+
+    // logger.info(`Fetched ${query} : ${JSON.stringify(contactInfo, null, 2)}`);
+
+    // if (!contactInfo) {
+    //   logger.warn(`Contact info not found for ${record?.uuid}`);
+    //   return;
+    // }
+
     const sourceid = record?.uuid;
-    const payload = companyMappingSM8ToHS(record); // Change to company
+    const payload = companyMappingSM8ToHS(record, contactInfo); // Change to company
     // const payload = {
     //   firstname: record?.name,
     //   sourceid: sourceid,
@@ -128,7 +174,69 @@ async function upsertCompanyInHubspot(record = {}) {
     throw error;
   }
 }
-async function upsertDealInHubspot(record = {}) {
+async function upsertDealInHubspot(
+  record = {
+    uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
+    active: 1,
+    date: "2026-02-01 00:00:00",
+    job_address: "35 Wigmore St,\nWillowbank QLD 4306",
+    billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
+    status: "Completed",
+    quote_date: "0000-00-00 00:00:00",
+    work_order_date: "2026-02-01 01:12:50",
+    work_done_description: "",
+    lng: 152.6862632,
+    lat: -27.6595746,
+    generated_job_id: "41339",
+    completion_date: "2026-02-10 12:53:30",
+    completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
+    unsuccessful_date: "0000-00-00 00:00:00",
+    payment_date: "2026-02-10 00:00:00",
+    payment_method: "Xero",
+    payment_amount: 340,
+    payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+    edit_date: "2026-02-11 06:11:17",
+    geo_is_valid: 1,
+    payment_note: "",
+    ready_to_invoice: "1",
+    ready_to_invoice_stamp: "2026-02-11 05:54:42",
+    company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
+    geo_country: "Australia",
+    geo_postcode: "4306",
+    geo_state: "QLD",
+    geo_city: "Willowbank",
+    geo_street: "Wigmore Street",
+    geo_number: "35",
+    payment_processed: 1,
+    payment_processed_stamp: "2026-02-11 05:56:45",
+    payment_received: 1,
+    payment_received_stamp: "2026-02-10 00:00:00",
+    total_invoice_amount: "340.0000",
+    job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
+    category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
+    queue_uuid: "",
+    queue_expiry_date: "0000-00-00 00:00:00",
+    badges:
+      '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
+    invoice_sent: true,
+    purchase_order_number: "",
+    invoice_sent_stamp: "2026-02-10 12:53:36",
+    queue_assigned_staff_uuid: "",
+    quote_sent_stamp: "0000-00-00 00:00:00",
+    quote_sent: false,
+    customfield_application_number: "",
+    customfield_lot: "0",
+    customfield_plan: "",
+    active_network_request_uuid: "",
+    customfield_lead_source: "",
+    customfield_xero_tracking_cat_1: "",
+    customfield_xero_tracking_cat_2: "HSTP Service",
+    related_knowledge_articles: false,
+    job_description:
+      "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
+    created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+  }
+) {
   try {
     // Find deal if exist update else create deal
     const hs_client = getHubspotClient();
@@ -208,31 +316,72 @@ async function upsertActivityInHubspot(endpoint, record = {}) {
   }
 }
 async function processBatchContactInHubspot(
-  contacts = [
+  records = [
     {
-      edit_date: "2021-03-22 14:39:11",
+      uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
+      edit_date: "2021-08-17 13:02:29",
+      name: "Teresa Stanton",
+      website: "",
+      abn_number: "",
+      address: "1 Tudor Court\nDelaneys Creek QLD 4514",
+      address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
+      address_city: "",
+      address_state: "",
+      address_postcode: "",
+      address_country: "",
+      billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
       active: 1,
-      is_primary_contact: "0",
-      company_uuid: "c8051127-d9cb-4570-be75-1cd45913d8db",
-      first: "",
-      last: "",
-      email: "dcrowhurst@bigpond.com",
-      phone: "0428634983",
-      mobile: "",
-      type: "BILLING",
-      uuid: "00447606-6c6d-4be3-8b4c-1cd45c7e0d1b",
+      is_individual: 1,
+      badges: "",
+      fax_number: "",
+      tax_rate_uuid: "",
+      billing_attention: "0",
+      payment_terms: "",
+      parent_company_uuid: "",
     },
   ]
 ) {
-  for (const contact of contacts) {
+  for (const record of records) {
     try {
-      logger.info(`✅ Processing contact  ${JSON.stringify(contact, null, 2)}`);
+      logger.info(`✅ Processing record  ${JSON.stringify(record, null, 2)}`);
 
-      // Upsert Contact in hubspot
-      const upsertContact = await upsertContactInHubspot(contact);
-      logger.info(
-        `✅ Upserted contact  ${JSON.stringify(upsertContact, null, 2)}`
+      // Find contact if exist update else create contact, first search based on phone number then email
+      const hs_client = getHubspotClient();
+
+      // Find contact info from serviceM8
+      const query = "companycontact.json";
+      const contacts = await searchInServiceM8UsingCustomField(
+        query,
+        "company_uuid",
+        record?.uuid
       );
+
+      if (!contacts) {
+        logger.warn(`Contact info not found for ${record?.uuid}`);
+        return;
+      }
+
+      for (const [inner_index, contact] of contacts.entries()) {
+        try {
+          logger.info(
+            `Processing  ${inner_index} : ${JSON.stringify(contact)}`
+          );
+          // Upsert Contact in hubspot
+          const upsertContact = await upsertContactInHubspot(record, contact);
+          logger.info(
+            `✅ Upserted contact  ${JSON.stringify(upsertContact, null, 2)}`
+          );
+        } catch (error) {
+          logger.error("❌ Error processing contact:", {
+            status: error?.status,
+            response: error.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
+            headers: error?.config?.headers,
+            stack: error,
+          });
+        }
+      }
     } catch (error) {
       logger.error("❌ Error processing contact:", {
         status: error?.status,
@@ -279,6 +428,98 @@ async function processBatchCompanyInHubspot(
       logger.info(
         `✅ Upserted Company  ${JSON.stringify(upsertCompany, null, 2)}`
       );
+
+      // find contact asociate with company
+      // Find contact info from serviceM8
+      const query = "companycontact.json";
+      const contacts = await searchInServiceM8UsingCustomField(
+        query,
+        "company_uuid",
+        record?.uuid
+      );
+
+      if (!contacts) {
+        logger.warn(`Contact info not found for ${record?.uuid}`);
+        continue;
+      }
+
+      // Associate with contact
+      for (const [inner_index, contactInfo] of contacts.entries()) {
+        try {
+          // Find contact asociate with company
+          if (!contactInfo.phone && !contactInfo.email) {
+            logger.warn(
+              `Phone and email is empty for ${
+                contactInfo.uuid
+              } : ${JSON.stringify(contactInfo)}`
+            );
+            continue;
+          }
+          logger.info(
+            `✅ Processing contact at index:${inner_index + 1} ${JSON.stringify(
+              contactInfo
+            )}`
+          );
+
+          let existingContact = null;
+
+          if (contactInfo.phone) {
+            existingContact = await hs_client.contacts.getContactByCustomField(
+              "phone",
+              contactInfo.phone
+            );
+            logger.info(
+              `existingContact found by phone: ${JSON.stringify(
+                existingContact,
+                null,
+                2
+              )}`
+            );
+          }
+
+          // if found assocaite with hubspot deal
+
+          if (!existingContact && contactInfo.email) {
+            existingContact = await hs_client.contacts.getContactByCustomField(
+              "email",
+              contactInfo.email
+            );
+            logger.info(
+              `existingContact found by email: ${JSON.stringify(
+                existingContact,
+                null,
+                2
+              )}`
+            );
+          }
+
+          if (existingContact?.id && upsertCompany?.id) {
+            const associate = await hs_client.associations.associate(
+              "contact",
+              existingContact?.id,
+              "company",
+              upsertDeal?.id,
+              "279",
+              "HUBSPOT_DEFINED"
+            );
+
+            logger.info(
+              `✅ Associate contact Id : ${existingContact?.id} with deal Id ${
+                upsertCompany?.id
+              }: ${JSON.stringify(associate, null, 2)}`
+            );
+          }
+        } catch (error) {
+          logger.error("❌ Error processing contact:", {
+            status: error?.status,
+            response: error.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
+            headers: error?.config?.headers,
+            stack: error,
+          });
+        }
+      }
       return; // TODO Remove after testing
     } catch (error) {
       logger.error("❌ Error processing Company:", {
@@ -293,76 +534,160 @@ async function processBatchCompanyInHubspot(
 }
 async function processBatchDealInHubspot(
   records = [
-    // {
-    //   uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
-    //   active: 1,
-    //   date: "2026-02-01 00:00:00",
-    //   job_address: "35 Wigmore St,\nWillowbank QLD 4306",
-    //   billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
-    //   status: "Completed",
-    //   quote_date: "0000-00-00 00:00:00",
-    //   work_order_date: "2026-02-01 01:12:50",
-    //   work_done_description: "",
-    //   lng: 152.6862632,
-    //   lat: -27.6595746,
-    //   generated_job_id: "41339",
-    //   completion_date: "2026-02-10 12:53:30",
-    //   completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
-    //   unsuccessful_date: "0000-00-00 00:00:00",
-    //   payment_date: "2026-02-10 00:00:00",
-    //   payment_method: "Xero",
-    //   payment_amount: 340,
-    //   payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-    //   edit_date: "2026-02-11 06:11:17",
-    //   geo_is_valid: 1,
-    //   payment_note: "",
-    //   ready_to_invoice: "1",
-    //   ready_to_invoice_stamp: "2026-02-11 05:54:42",
-    //   company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
-    //   geo_country: "Australia",
-    //   geo_postcode: "4306",
-    //   geo_state: "QLD",
-    //   geo_city: "Willowbank",
-    //   geo_street: "Wigmore Street",
-    //   geo_number: "35",
-    //   payment_processed: 1,
-    //   payment_processed_stamp: "2026-02-11 05:56:45",
-    //   payment_received: 1,
-    //   payment_received_stamp: "2026-02-10 00:00:00",
-    //   total_invoice_amount: "340.0000",
-    //   job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
-    //   category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
-    //   queue_uuid: "",
-    //   queue_expiry_date: "0000-00-00 00:00:00",
-    //   badges:
-    //     '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
-    //   invoice_sent: true,
-    //   purchase_order_number: "",
-    //   invoice_sent_stamp: "2026-02-10 12:53:36",
-    //   queue_assigned_staff_uuid: "",
-    //   quote_sent_stamp: "0000-00-00 00:00:00",
-    //   quote_sent: false,
-    //   customfield_application_number: "",
-    //   customfield_lot: "0",
-    //   customfield_plan: "",
-    //   active_network_request_uuid: "",
-    //   customfield_lead_source: "",
-    //   customfield_xero_tracking_cat_1: "",
-    //   customfield_xero_tracking_cat_2: "HSTP Service",
-    //   related_knowledge_articles: false,
-    //   job_description:
-    //     "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
-    //   created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-    // },
+    {
+      uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
+      active: 1,
+      date: "2026-02-01 00:00:00",
+      job_address: "35 Wigmore St,\nWillowbank QLD 4306",
+      billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
+      status: "Completed",
+      quote_date: "0000-00-00 00:00:00",
+      work_order_date: "2026-02-01 01:12:50",
+      work_done_description: "",
+      lng: 152.6862632,
+      lat: -27.6595746,
+      generated_job_id: "41339",
+      completion_date: "2026-02-10 12:53:30",
+      completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
+      unsuccessful_date: "0000-00-00 00:00:00",
+      payment_date: "2026-02-10 00:00:00",
+      payment_method: "Xero",
+      payment_amount: 340,
+      payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+      edit_date: "2026-02-11 06:11:17",
+      geo_is_valid: 1,
+      payment_note: "",
+      ready_to_invoice: "1",
+      ready_to_invoice_stamp: "2026-02-11 05:54:42",
+      company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
+      geo_country: "Australia",
+      geo_postcode: "4306",
+      geo_state: "QLD",
+      geo_city: "Willowbank",
+      geo_street: "Wigmore Street",
+      geo_number: "35",
+      payment_processed: 1,
+      payment_processed_stamp: "2026-02-11 05:56:45",
+      payment_received: 1,
+      payment_received_stamp: "2026-02-10 00:00:00",
+      total_invoice_amount: "340.0000",
+      job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
+      category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
+      queue_uuid: "",
+      queue_expiry_date: "0000-00-00 00:00:00",
+      badges:
+        '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
+      invoice_sent: true,
+      purchase_order_number: "",
+      invoice_sent_stamp: "2026-02-10 12:53:36",
+      queue_assigned_staff_uuid: "",
+      quote_sent_stamp: "0000-00-00 00:00:00",
+      quote_sent: false,
+      customfield_application_number: "",
+      customfield_lot: "0",
+      customfield_plan: "",
+      active_network_request_uuid: "",
+      customfield_lead_source: "",
+      customfield_xero_tracking_cat_1: "",
+      customfield_xero_tracking_cat_2: "HSTP Service",
+      related_knowledge_articles: false,
+      job_description:
+        "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
+      created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+    },
   ]
 ) {
-  for (const record of records) {
+  for (const [index, record] of records.entries()) {
     try {
       logger.info(`✅ Processing Job  ${JSON.stringify(record, null, 2)}`);
 
       // Upsert Deal in hubspot
       const upsertDeal = await upsertDealInHubspot(record);
       logger.info(`✅ Upserted Deal  ${JSON.stringify(upsertDeal, null, 2)}`);
+
+      // Find contact info from serviceM8
+      const query = "jobcontact.json";
+      const contacts = await searchInServiceM8UsingCustomField(
+        query,
+        "job_uuid",
+        record?.uuid
+      );
+
+      if (!contacts) {
+        logger.warn(`Contact info not found for ${record?.uuid}`);
+        return;
+      }
+      logger.info(`✅ Found contacts: ${contacts?.length}`);
+
+      const hs_client = getHubspotClient();
+
+      for (const [inner_index, contactInfo] of contacts.entries()) {
+        try {
+          logger.info(
+            `✅ Processing contact at index:${inner_index + 1} ${JSON.stringify(
+              contactInfo
+            )}`
+          );
+          let existingContact = null;
+
+          if (contactInfo.phone) {
+            existingContact = await hs_client.contacts.getContactByCustomField(
+              "phone",
+              contactInfo.phone
+            );
+            logger.info(
+              `existingContact found by phone: ${JSON.stringify(
+                existingContact,
+                null,
+                2
+              )}`
+            );
+          }
+
+          // if found assocaite with hubspot deal
+
+          if (!existingContact && contactInfo.email) {
+            existingContact = await hs_client.contacts.getContactByCustomField(
+              "email",
+              contactInfo.email
+            );
+            logger.info(
+              `existingContact found by email: ${JSON.stringify(
+                existingContact,
+                null,
+                2
+              )}`
+            );
+          }
+
+          if (existingContact?.id && upsertDeal?.id) {
+            const associate = await hs_client.associations.associate(
+              "contact",
+              existingContact?.id,
+              "deal",
+              upsertDeal?.id,
+              "4",
+              "HUBSPOT_DEFINED"
+            );
+
+            logger.info(
+              `✅ Associate contact Id : ${existingContact?.id} with deal Id ${
+                upsertDeal?.id
+              }: ${JSON.stringify(associate, null, 2)}`
+            );
+          }
+        } catch (error) {
+          logger.error(`❌ Error processing contact`, {
+            status: error?.status,
+            response: error.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
+            headers: error?.config?.headers,
+            stack: error,
+          });
+        }
+      }
+
       return; // TODO Remove after testing
     } catch (error) {
       logger.error("❌ Error processing Job:", {
@@ -371,6 +696,7 @@ async function processBatchDealInHubspot(
         method: error?.method,
         url: error?.config?.url,
         headers: error?.config?.headers,
+        stack: error,
       });
     }
   }
@@ -783,7 +1109,7 @@ async function searchInHubspot(
   }
 }
 
-// ✅ Fetch deal from hubspot and sync to serviceM8 as Job, JOb would be only one way sync from HS-SM8
+// ✅ Fetch deal from hubspot and sync to serviceM8 as Job, Job will be only one way sync from HS-SM8
 async function syncHubspotDealToServiceM8Job() {
   try {
     const endpoint = "/crm/v3/objects/deals";

@@ -17,7 +17,7 @@ import {
   syncServiceM8NoteToHubSpotAsActivity,
   searchInServiceM8,
   syncServiceM8ClientToHubSpotAsCompany,
-  syncServiceM8CompanyContactToHubSpotAsContact,
+  // syncServiceM8CompanyContactToHubSpotAsContact,
 } from "./src/services/serviceM8.service.js";
 import { serviceM8Client } from "./src/configs/serviceM8.config.js";
 import {
@@ -26,6 +26,7 @@ import {
   syncHubspotDealToServiceM8Job,
   syncHubspotContactToServiceM8Client,
   processBatchContactInHubspot,
+  processBatchCompanyInHubspot,
 } from "./src/services/hubspot.service.js";
 
 // ------------------------------
@@ -53,7 +54,7 @@ serverInit();
 // syncHubspotContactToServiceM8Client();
 // searchInServiceM8("company.json", "0004567a-2c25-4d1c-bdad-1cd4559a391b");
 // syncServiceM8ClientToHubSpotAsCompany();
-processBatchContactInHubspot();
+processBatchCompanyInHubspot();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client

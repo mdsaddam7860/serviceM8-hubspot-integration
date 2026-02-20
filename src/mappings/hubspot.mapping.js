@@ -20,13 +20,15 @@ function extractName(fullName = "") {
 
   return { firstName, lastName };
 }
-function contactMappingSM8ToHS(record) {
+function contactMappingSM8ToHS(record = {}, contactInfo = {}) {
   const { firstName, lastName } = extractName(record?.name);
   const payload = cleanProps({
     sourceid: record?.uuid,
-    email: record?.email,
-    firstname: firstName,
-    lastname: lastName,
+    email: contactInfo?.email,
+    phone: contactInfo.phone,
+    mobilephone: contactInfo.mobile,
+    firstname: contactInfo.first || firstName,
+    lastname: contactInfo.last || lastName,
     website: record?.website,
     address: record?.address_street,
     city: record?.address_city,
@@ -38,7 +40,7 @@ function contactMappingSM8ToHS(record) {
   //   return { properties: payload };
 }
 
-function companyMappingSM8ToHS(record) {
+function companyMappingSM8ToHS(record, contactInfo = {}) {
   const payload = cleanProps({
     sourceid: record?.uuid,
     name: record?.name,
@@ -48,6 +50,9 @@ function companyMappingSM8ToHS(record) {
     state: record?.address_state,
     country: record?.address_country,
     zip: record?.address_postcode,
+    phone: contactInfo.mobile,
+    // description: record?.description,
+    // about_us: record?.about_us,
     // fax: record?.fax_number,
   });
 
