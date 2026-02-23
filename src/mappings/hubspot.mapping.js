@@ -31,7 +31,7 @@ function extractName(fullName = "") {
 function contactMappingSM8ToHS(record = {}, contactInfo = {}) {
   const { firstName, lastName } = extractName(record?.name);
   const payload = cleanProps({
-    sourceid: record?.uuid,
+    sourceid: record?.uuid || contactInfo.uuid,
     email: contactInfo?.email,
     phone: contactInfo.phone,
     mobilephone: contactInfo.mobile,

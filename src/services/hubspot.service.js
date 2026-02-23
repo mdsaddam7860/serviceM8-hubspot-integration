@@ -17,26 +17,26 @@ import {
 
 async function upsertContactInHubspot(
   record = {
-    uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
-    edit_date: "2021-08-17 13:02:29",
-    name: "Teresa Stanton",
-    website: "",
-    abn_number: "",
-    address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    address_city: "",
-    address_state: "",
-    address_postcode: "",
-    address_country: "",
-    billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    active: 1,
-    is_individual: 1,
-    badges: "",
-    fax_number: "",
-    tax_rate_uuid: "",
-    billing_attention: "0",
-    payment_terms: "",
-    parent_company_uuid: "",
+    // uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
+    // edit_date: "2021-08-17 13:02:29",
+    // name: "Teresa Stanton",
+    // website: "",
+    // abn_number: "",
+    // address: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    // address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    // address_city: "",
+    // address_state: "",
+    // address_postcode: "",
+    // address_country: "",
+    // billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    // active: 1,
+    // is_individual: 1,
+    // badges: "",
+    // fax_number: "",
+    // tax_rate_uuid: "",
+    // billing_attention: "0",
+    // payment_terms: "",
+    // parent_company_uuid: "",
   },
   contactInfo = {}
 ) {
@@ -396,26 +396,26 @@ async function processBatchContactInHubspot(
 async function processBatchCompanyInHubspot(
   records = [
     {
-      uuid: "0004567a-2c25-4d1c-bdad-1cd4559a391b",
-      edit_date: "2021-03-22 14:36:20",
-      name: "Tracey Dorge",
+      uuid: "13b7fb7f-2088-4d75-8de9-1e38e057802b",
+      edit_date: "2022-03-09 13:26:25",
+      name: "1067 Dayboro Road",
       website: "",
       abn_number: "",
-      address: "17 Tarrawarrah Avenue\nTallai, Queensland",
-      address_street: "17 Tarrawarrah Avenue",
-      address_city: "Tallai",
-      address_state: "Queensland",
+      address: "1067 Dayboro Rd,\nWhiteside QLD 4503",
+      address_street: "",
+      address_city: "",
+      address_state: "",
       address_postcode: "",
-      address_country: "Australia",
-      billing_address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+      address_country: "",
+      billing_address: "",
       active: 1,
       is_individual: 0,
-      badges: "",
+      badges: "[]",
       fax_number: "",
       tax_rate_uuid: "",
       billing_attention: "0",
-      payment_terms: "COD",
-      parent_company_uuid: "",
+      payment_terms: "",
+      parent_company_uuid: "2d9c8a6c-aa60-4fd1-9303-1cd45945d70b",
     },
   ]
 ) {
@@ -442,6 +442,8 @@ async function processBatchCompanyInHubspot(
         logger.warn(`Contact info not found for ${record?.uuid}`);
         continue;
       }
+
+      const hs_client = getHubspotClient();
 
       // Associate with contact
       for (const [inner_index, contactInfo] of contacts.entries()) {
@@ -493,20 +495,28 @@ async function processBatchCompanyInHubspot(
             );
           }
 
+          if (!existingContact) {
+            existingContact = await upsertContactInHubspot({}, contactInfo);
+          }
+
           if (existingContact?.id && upsertCompany?.id) {
             const associate = await hs_client.associations.associate(
               "contact",
               existingContact?.id,
               "company",
-              upsertDeal?.id,
+              upsertCompany?.id,
               "279",
               "HUBSPOT_DEFINED"
             );
 
             logger.info(
-              `✅ Associate contact Id : ${existingContact?.id} with deal Id ${
-                upsertCompany?.id
-              }: ${JSON.stringify(associate, null, 2)}`
+              `✅ Associate contact Id : ${
+                existingContact?.id
+              } with Company Id ${upsertCompany?.id}: ${JSON.stringify(
+                associate,
+                null,
+                2
+              )}`
             );
           }
         } catch (error) {
