@@ -20,6 +20,14 @@ function extractName(fullName = "") {
 
   return { firstName, lastName };
 }
+/**
+ * Maps a serviceM8 contact to a Hubspot contact.
+ * It takes a serviceM8 contact record and contact info from serviceM8
+ * and returns a Hubspot contact payload.
+ * @param {Object} record - serviceM8 contact record
+ * @param {Object} contactInfo - contact info from serviceM8
+ * @return {Object} Hubspot contact payload
+ */
 function contactMappingSM8ToHS(record = {}, contactInfo = {}) {
   const { firstName, lastName } = extractName(record?.name);
   const payload = cleanProps({
@@ -40,6 +48,14 @@ function contactMappingSM8ToHS(record = {}, contactInfo = {}) {
   //   return { properties: payload };
 }
 
+/**
+ * Maps a serviceM8 company to a Hubspot company.
+ * It takes a serviceM8 company record and contact info from serviceM8
+ * and returns a Hubspot company payload.
+ * @param {Object} record - serviceM8 company record
+ * @param {Object} contactInfo - contact info from serviceM8
+ * @return {Object} Hubspot company payload
+ */
 function companyMappingSM8ToHS(record, contactInfo = {}) {
   const payload = cleanProps({
     sourceid: record?.uuid,

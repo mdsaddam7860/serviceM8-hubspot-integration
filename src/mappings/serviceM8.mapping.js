@@ -10,6 +10,25 @@ import { serviceM8Client } from "../configs/serviceM8.config.js";
     "hs_lastmodifieddate": "2026-02-10T05:04:30.527Z"
 */
 
+/**
+ * Maps a ServiceM8 record to a Hubspot record.
+ * @param {Object} record - The ServiceM8 record to be mapped.
+ * @returns {Object} - The mapped Hubspot record.
+ * @example
+ * const record = {
+ *   properties: {
+ *     amount: "35012.05",
+ *     closedate: null,
+ *     createdate: "2025-12-02T06:28:35.710Z",
+ *     dealname: "Flourish Homes",
+ *     dealstage: "2114542054",
+ *     hs_lastmodifieddate: "2026-02-10T05:04:30.527Z"
+ *   }
+ * };
+ * const mappedRecord = jobMappingHSTOSM8(record);
+ * console.log(mappedRecord);
+ * // Output: { uuid: "58998df3-ecc7-4760-a0e5-1fe9a07e40eb", active: 1, ... }
+ */
 function jobMappingHSTOSM8(record = {}) {
   const deal = record.properties || {};
   const payload = cleanProps({
@@ -77,6 +96,28 @@ function jobMappingHSTOSM8(record = {}) {
   //   return { properties: payload };
 }
 
+/**
+ * Maps a Hubspot record to a ServiceM8 record.
+ * @param {Object} record - The Hubspot record to be mapped.
+ * @returns {Object} - The mapped ServiceM8 record.
+ * @example
+ * const record = {
+ *   properties: {
+ *     sourceid: "58998df3-ecc7-4760-a0e5-1fe9a07e40eb",
+ *     firstname: "John",
+ *     lastname: "Doe",
+ *     website: "",
+ *     address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+ *     city: "Tallai",
+ *     state: "Queensland",
+ *     zip: "",
+ *     country: "Australia"
+ *   }
+ * };
+ * const mappedRecord = clientMappingHSTOSM8(record);
+ * console.log(mappedRecord);
+ * // Output: { uuid: "58998df3-ecc7-4760-a0e5-1fe9a07e40eb", name: "John Doe", website: "", address: "17 Tarrawarrah Avenue\nTallai, Queensland", address_street: "17 Tarrawarrah Avenue", address_city: "Tallai", address_state: "Queensland", address_postcode: "", address_country: "Australia" }
+ */
 function clientMappingHSTOSM8(record = {}) {
   const contact = record.properties || {};
   const payload = cleanProps({
