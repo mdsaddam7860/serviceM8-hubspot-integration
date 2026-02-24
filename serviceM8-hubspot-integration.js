@@ -27,6 +27,7 @@ import {
   syncHubspotContactToServiceM8Client,
   processBatchContactInHubspot,
   processBatchCompanyInHubspot,
+  findContactInHubspot,
 } from "./src/services/hubspot.service.js";
 
 // ------------------------------

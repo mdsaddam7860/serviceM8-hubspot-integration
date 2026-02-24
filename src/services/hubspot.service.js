@@ -15,6 +15,116 @@ import {
   processBatchContactInServiceM8,
 } from "./serviceM8.service.js";
 
+// First search based on phone number if 0 results search based on email
+// If more than 1 result search based on phone and email if 0 results upsert based on first contact
+async function findContactInHubspot(contactInfo = {}) {
+  try {
+    const hs_client = getHubspotClient();
+
+    const rawPhone = contactInfo?.phone || contactInfo?.mobile; // "0447 477 666"
+
+    // 1. Remove all spaces and non-digit characters
+    let cleaned = rawPhone;
+    // let cleaned = rawPhone.replace(/\D/g, "");
+
+    // 2. Replace leading '0' with '+61'
+    if (cleaned.startsWith("0")) {
+      cleaned = cleaned.substring(1);
+    }
+    // else if (!cleaned.startsWith("61")) {
+    //   // Optional: Add +61 if it's missing entirely
+    //   cleaned = "+61" + cleaned;
+    // }
+
+    const filterGroups = [
+      {
+        filters: [
+          {
+            propertyName: "phone",
+            operator: "EQ",
+            value: cleaned,
+          },
+        ],
+      },
+    ];
+
+    let existingContact = null;
+
+    // Search Contact by phone number
+    existingContact = await hs_client.contacts.searchContacts(filterGroups);
+
+    // Return the contact if its length is 1
+    if (existingContact?.results?.length === 1) {
+      logger.info(
+        `existingContact found by phone is 1: ${JSON.stringify(
+          existingContact,
+          null,
+          2
+        )}`
+      );
+      return existingContact.results[0];
+    }
+
+    // Search by phone and email if it has more than 1 result
+    if (existingContact.results.length > 1) {
+      logger.info(
+        `exisingContact found by phone is more than one switching to search by phone and email: ${existingContact?.results?.length}`
+      );
+      // search based on email and phone
+      const filterGroups = [
+        {
+          // Search Email and phone
+          filters: [
+            { propertyName: "email", operator: "EQ", value: contactInfo.email },
+            {
+              propertyName: "phone",
+              operator: "EQ",
+              value: cleaned,
+            },
+          ],
+        },
+      ];
+      existingContact = await hs_client.contacts.searchContacts(filterGroups);
+
+      if (existingContact?.results?.length >= 1) {
+        return existingContact.results[0];
+      }
+    }
+
+    // logger.info(`existingContact length: ${existingContact?.results?.length}`);
+    // return;
+
+    // Search by email if it has 0 result
+    if (existingContact?.results?.length === 0) {
+      logger.info(
+        `exisingContact found by phone is Zero switching to search by email`
+      );
+      return await hs_client.contacts.getContactByCustomField(
+        "email",
+        contactInfo.email
+      );
+      // logger.info(
+      //   `existingContact found by email: ${JSON.stringify(
+      //     existingContact,
+      //     null,
+      //     2
+      //   )}`
+      // );
+    }
+  } catch (error) {
+    logger.error("❌ Error finding  existing Contact in Hubspot", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      stack: error,
+    });
+
+    throw error;
+  }
+}
+
 async function upsertContactInHubspot(
   record = {
     // uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
@@ -48,32 +158,11 @@ async function upsertContactInHubspot(
 
     // search contact based on phone number
 
-    let existingContact = await hs_client.contacts.getContactByCustomField(
-      "phone",
-      contactInfo.phone
-    );
-    logger.info(
-      `existingContact found by phone: ${JSON.stringify(
-        existingContact,
-        null,
-        2
-      )}`
-    );
-    // search contact based on phone number if not found search based on email
+    // First search based on phone number if 0 results search based on email
+    // If more than 1 result search based on phone and email if 0 results upsert based on first contact
 
-    if (!existingContact) {
-      existingContact = await hs_client.contacts.getContactByCustomField(
-        "email",
-        contactInfo.email
-      );
-      logger.info(
-        `existingContact found by email: ${JSON.stringify(
-          existingContact,
-          null,
-          2
-        )}`
-      );
-    }
+    let existingContact = await findContactInHubspot(contactInfo);
+    // search contact based on phone number if not found search based on email
 
     if (existingContact) {
       return await hs_client.contacts.updateContact(
@@ -98,25 +187,25 @@ async function upsertContactInHubspot(
 }
 async function upsertCompanyInHubspot(
   record = {
-    uuid: "0004567a-2c25-4d1c-bdad-1cd4559a391b",
-    edit_date: "2021-03-22 14:36:20",
-    name: "Tracey Dorge",
+    uuid: "0582f095-132d-4086-9aec-2364ff30690b",
+    edit_date: "2025-12-08 13:55:31",
+    name: "Josh Olsen Carpentry",
     website: "",
     abn_number: "",
-    address: "17 Tarrawarrah Avenue\nTallai, Queensland",
-    address_street: "17 Tarrawarrah Avenue",
-    address_city: "Tallai",
-    address_state: "Queensland",
+    address: "60 Woodside Street\nThe Gap QLD 4061 ",
+    address_street: "60 Woodside Street\nThe Gap QLD 4061",
+    address_city: "",
+    address_state: "",
     address_postcode: "",
-    address_country: "Australia",
-    billing_address: "17 Tarrawarrah Avenue\nTallai, Queensland",
+    address_country: "",
+    billing_address: "60 Woodside Street\nThe Gap QLD 4061",
     active: 1,
     is_individual: 0,
-    badges: "",
+    badges: "[]",
     fax_number: "",
     tax_rate_uuid: "",
     billing_attention: "0",
-    payment_terms: "COD",
+    payment_terms: "",
     parent_company_uuid: "",
   },
   contactInfo = {}
@@ -396,12 +485,12 @@ async function processBatchContactInHubspot(
 async function processBatchCompanyInHubspot(
   records = [
     {
-      uuid: "13b7fb7f-2088-4d75-8de9-1e38e057802b",
-      edit_date: "2022-03-09 13:26:25",
-      name: "1067 Dayboro Road",
+      uuid: "910635d0-c1d4-4efc-a7f6-200d2108061b",
+      edit_date: "2023-11-26 17:29:32",
+      name: "260 Old Gympie Road - Deborah Steadman - Secondary Dwelling",
       website: "",
       abn_number: "",
-      address: "1067 Dayboro Rd,\nWhiteside QLD 4503",
+      address: "260 Old Gympie Rd,\nCaboolture QLD 4510",
       address_street: "",
       address_city: "",
       address_state: "",
@@ -415,7 +504,7 @@ async function processBatchCompanyInHubspot(
       tax_rate_uuid: "",
       billing_attention: "0",
       payment_terms: "",
-      parent_company_uuid: "2d9c8a6c-aa60-4fd1-9303-1cd45945d70b",
+      parent_company_uuid: "6f47446d-2f56-4f26-a6bb-1f6ba059a63b",
     },
   ]
 ) {
@@ -465,40 +554,41 @@ async function processBatchCompanyInHubspot(
 
           let existingContact = null;
 
-          if (contactInfo.phone) {
-            existingContact = await hs_client.contacts.getContactByCustomField(
-              "phone",
-              contactInfo.phone
-            );
-            logger.info(
-              `existingContact found by phone: ${JSON.stringify(
-                existingContact,
-                null,
-                2
-              )}`
-            );
-          }
+          // if (contactInfo.phone) {
+          //   existingContact = await hs_client.contacts.getContactByCustomField(
+          //     "phone",
+          //     contactInfo.phone
+          //   );
+          //   logger.info(
+          //     `existingContact found by phone: ${JSON.stringify(
+          //       existingContact,
+          //       null,
+          //       2
+          //     )}`
+          //   );
+          // }
 
-          // if found assocaite with hubspot deal
+          // // if found assocaite with hubspot deal
 
-          if (!existingContact && contactInfo.email) {
-            existingContact = await hs_client.contacts.getContactByCustomField(
-              "email",
-              contactInfo.email
-            );
-            logger.info(
-              `existingContact found by email: ${JSON.stringify(
-                existingContact,
-                null,
-                2
-              )}`
-            );
-          }
+          // if (!existingContact && contactInfo.email) {
+          //   existingContact = await hs_client.contacts.getContactByCustomField(
+          //     "email",
+          //     contactInfo.email
+          //   );
+          //   logger.info(
+          //     `existingContact found by email: ${JSON.stringify(
+          //       existingContact,
+          //       null,
+          //       2
+          //     )}`
+          //   );
+          // }
 
-          if (!existingContact) {
-            existingContact = await upsertContactInHubspot({}, contactInfo);
-          }
+          existingContact = await upsertContactInHubspot({}, contactInfo);
 
+          logger.info(
+            `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
+          );
           if (existingContact?.id && upsertCompany?.id) {
             const associate = await hs_client.associations.associate(
               "contact",
@@ -1206,4 +1296,5 @@ export {
   searchInHubspot,
   syncHubspotDealToServiceM8Job,
   processBatchCompanyInHubspot,
+  findContactInHubspot,
 };
