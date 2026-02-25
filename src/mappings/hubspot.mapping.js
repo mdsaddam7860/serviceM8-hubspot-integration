@@ -196,7 +196,8 @@ function dealMappingSM8ToHS(record = {}) {
     generated_job_id_service_m8: record?.generated_job_id,
     sourceid: record?.uuid,
     dealname: record?.job_address?.split("\n")[0] || "New Job", // Using address as name, or a fallback
-    pipeline: "1322868159",
+    pipeline: "default",
+    dealstage: "2564260296",
 
     // --- Descriptions & Addresses ---
     job_address_service_m8: record?.job_address,
