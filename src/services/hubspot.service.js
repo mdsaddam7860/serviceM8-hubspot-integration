@@ -15,28 +15,76 @@ import {
   processBatchContactInServiceM8,
 } from "./serviceM8.service.js";
 
+async function processDealContactAssociation(
+  contactInfo = {},
+  upsertDealId = null
+) {
+  try {
+    // await processBatchDealContact(contactInfo)
+    logger.info(
+      `✅ Processing contact at index:${inner_index + 1} ${JSON.stringify(
+        contactInfo
+      )}`
+    );
+    let existingContact = findContactInHubspot();
+
+    if (existingContact?.id && upsertDealId) {
+      const associate = await hs_client.associations.associate(
+        "contact",
+        existingContact?.id,
+        "deal",
+        upsertDealId,
+        "4",
+        "HUBSPOT_DEFINED"
+      );
+
+      logger.info(
+        `✅ Associate contact Id : ${
+          existingContact?.id
+        } with deal Id ${upsertDealId}: ${JSON.stringify(associate, null, 2)}`
+      );
+    }
+  } catch (error) {
+    logger.error("❌ HubSpot Contact failed to upsert:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+  }
+}
+
 // First search based on phone number if 0 results search based on email
 // If more than 1 result search based on phone and email if 0 results upsert based on first contact
 async function findContactInHubspot(contactInfo = {}) {
   try {
     const hs_client = getHubspotClient();
 
-    const rawPhone = contactInfo?.phone || contactInfo?.mobile; // "0447 477 666"
+    const rawPhone = contactInfo?.mobile ? contactInfo?.mobile : null;
 
     // 1. Remove all spaces and non-digit characters
-    let cleaned = rawPhone;
-    // let cleaned = rawPhone.replace(/\D/g, "");
+    // let cleaned = rawPhone;
+    let cleaned = rawPhone.replace(/\D/g, "");
 
     // 2. Replace leading '0' with '+61'
     if (cleaned.startsWith("0")) {
-      cleaned = cleaned.substring(1);
+      cleaned = "+61" + cleaned.substring(1);
+    } else if (cleaned && !cleaned.startsWith("61")) {
+      // Optional: Add +61 if it's missing entirely
+      cleaned = "+61" + cleaned;
     }
-    // else if (!cleaned.startsWith("61")) {
-    //   // Optional: Add +61 if it's missing entirely
-    //   cleaned = "+61" + cleaned;
-    // }
 
     const filterGroups = [
+      {
+        filters: [
+          {
+            propertyName: "mobilephone",
+            operator: "EQ",
+            value: cleaned,
+          },
+        ],
+      },
       {
         filters: [
           {
@@ -54,9 +102,9 @@ async function findContactInHubspot(contactInfo = {}) {
     existingContact = await hs_client.contacts.searchContacts(filterGroups);
 
     // Return the contact if its length is 1
-    if (existingContact?.results?.length === 1) {
+    if (existingContact?.results?.length >= 1) {
       logger.info(
-        `existingContact found by phone is 1: ${JSON.stringify(
+        `existingContact found by mobilephone : ${JSON.stringify(
           existingContact,
           null,
           2
@@ -125,63 +173,154 @@ async function findContactInHubspot(contactInfo = {}) {
   }
 }
 
-async function upsertContactInHubspot(
-  record = {
-    // uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
-    // edit_date: "2021-08-17 13:02:29",
-    // name: "Teresa Stanton",
-    // website: "",
-    // abn_number: "",
-    // address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    // address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    // address_city: "",
-    // address_state: "",
-    // address_postcode: "",
-    // address_country: "",
-    // billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    // active: 1,
-    // is_individual: 1,
-    // badges: "",
-    // fax_number: "",
-    // tax_rate_uuid: "",
-    // billing_attention: "0",
-    // payment_terms: "",
-    // parent_company_uuid: "",
-  },
-  contactInfo = {}
-) {
-  try {
-    // Find contact if exist update else create contact, first search based on phone number then email
-    const hs_client = getHubspotClient();
+// async function upsertContactInHubspot(record = {}, contactInfo = {}) {
+//   try {
+//     // Find contact if exist update else create contact, first search based on phone number then email
+//     const hs_client = getHubspotClient();
 
+//     const payload = contactMappingSM8ToHS(record, contactInfo);
+
+//     // search contact based on phone number
+
+//     // First search based on phone number if 0 results search based on email
+//     // If more than 1 result search based on phone and email if 0 results upsert based on first contact
+
+//     let existingContact = await findContactInHubspot(contactInfo);
+//     // search contact based on phone number if not found search based on email
+
+//     if (existingContact) {
+//       try {
+//         return await hs_client.contacts.updateContact(
+//           existingContact?.id,
+//           payload
+//         );
+//       } catch (error) {
+//         logger.error("❌ HubSpot Contact failed to upsert:", {
+//           status: error?.status,
+//           errorMessage: error.response?.data?.message || "Unknown",
+//           response: error.response?.data,
+//           // method: error?.method,
+//           // url: error?.config?.url,
+//           // headers: error?.config?.headers,
+//           // stack: error,
+//         });
+
+//         // logger.info(`Full error : ${JSON.stringify(error, null, 2)}`);
+//         // throw error;
+//       }
+//     } else {
+//       // create  contact
+//       try {
+//         return await hs_client.contacts.createContact(payload);
+//       } catch (error) {
+//         logger.error("❌ HubSpot Contact failed to upsert:", {
+//           status: error?.status,
+//           errorMessage: error?.response?.message || "Unknown",
+//           // response: error.response?.data,
+//           // method: error?.method,
+//           // url: error?.config?.url,
+//           // headers: error?.config?.headers,
+//           httpError: error,
+//         });
+//         logger.info(`Full error : ${JSON.stringify(error, null, 2)}`);
+//       }
+//     }
+//   } catch (error) {
+//     logger.error("❌ HubSpot Contact failed to upsert:", {
+//       status: error?.status,
+//       errorMessage: error?.response?.message || "Unknown",
+//       // response: error.response?.data,
+//       // method: error?.method,
+//       // url: error?.config?.url,
+//       // headers: error?.config?.headers,
+//       httpError: error,
+//     });
+//     throw error;
+//   }
+// }
+
+async function upsertContactInHubspot(record = {}, contactInfo = {}) {
+  try {
+    const hs_client = getHubspotClient();
     const payload = contactMappingSM8ToHS(record, contactInfo);
 
-    // search contact based on phone number
-
-    // First search based on phone number if 0 results search based on email
-    // If more than 1 result search based on phone and email if 0 results upsert based on first contact
-
     let existingContact = await findContactInHubspot(contactInfo);
-    // search contact based on phone number if not found search based on email
+
+    const isEmailConflict = (error) => {
+      const message = error?.response?.data?.message || "";
+      return (
+        error?.response?.data?.category === "VALIDATION_ERROR" &&
+        message.includes("propertyName=email")
+      );
+    };
+
+    const removeEmailFromPayload = (originalPayload) => {
+      const cloned = {
+        ...originalPayload,
+        // properties: { ...originalPayload.properties },
+      };
+      delete cloned.email;
+      return cloned;
+    };
 
     if (existingContact) {
-      return await hs_client.contacts.updateContact(
-        existingContact?.id,
-        payload
-      );
+      try {
+        return await hs_client.contacts.updateContact(
+          existingContact.id,
+          payload
+        );
+      } catch (error) {
+        logger.error("❌ HubSpot Contact update failed:", {
+          status: error?.response?.status,
+          message: error?.response?.data?.message,
+          category: error?.response?.data?.category,
+        });
+
+        // 🔁 Retry without email if duplicate email conflict
+        if (isEmailConflict(error)) {
+          logger.warn(
+            "⚠️ Email conflict detected. Retrying update without email..."
+          );
+
+          const retryPayload = removeEmailFromPayload(payload);
+
+          return await hs_client.contacts.updateContact(
+            existingContact.id,
+            retryPayload
+          );
+        }
+
+        throw error; // don't swallow unknown errors
+      }
     } else {
-      // create  contact
-      return await hs_client.contacts.createContact(payload);
+      try {
+        return await hs_client.contacts.createContact(payload);
+      } catch (error) {
+        logger.error("❌ HubSpot Contact create failed:", {
+          status: error?.response?.status,
+          message: error?.response?.data?.message,
+          category: error?.response?.data?.category,
+        });
+
+        if (isEmailConflict(error)) {
+          logger.warn(
+            "⚠️ Email conflict detected. Retrying create without email..."
+          );
+
+          const retryPayload = removeEmailFromPayload(payload);
+
+          return await hs_client.contacts.createContact(retryPayload);
+        }
+
+        throw error;
+      }
     }
   } catch (error) {
-    logger.error("❌ HubSpot Contact failed to upsert:", {
-      status: error?.status,
-      response: error.response?.data,
-      method: error?.method,
-      url: error?.config?.url,
-      headers: error?.config?.headers,
-      stack: error,
+    logger.error("❌ HubSpot Contact failed to upsert (outer catch):", {
+      status: error?.response?.status,
+      message: error?.response?.data?.message,
     });
+
     throw error;
   }
 }
@@ -485,12 +624,12 @@ async function processBatchContactInHubspot(
 async function processBatchCompanyInHubspot(
   records = [
     {
-      uuid: "910635d0-c1d4-4efc-a7f6-200d2108061b",
-      edit_date: "2023-11-26 17:29:32",
-      name: "260 Old Gympie Road - Deborah Steadman - Secondary Dwelling",
+      uuid: "2ef996a9-018f-405e-85f8-1fb1c3bb77fb",
+      edit_date: "2026-01-05 10:13:59",
+      name: "Jon and Naomi West",
       website: "",
       abn_number: "",
-      address: "260 Old Gympie Rd,\nCaboolture QLD 4510",
+      address: "54-64 Cathy Ct,\nCaboolture QLD 4510",
       address_street: "",
       address_city: "",
       address_state: "",
@@ -504,7 +643,7 @@ async function processBatchCompanyInHubspot(
       tax_rate_uuid: "",
       billing_attention: "0",
       payment_terms: "",
-      parent_company_uuid: "6f47446d-2f56-4f26-a6bb-1f6ba059a63b",
+      parent_company_uuid: "",
     },
   ]
 ) {
@@ -609,6 +748,7 @@ async function processBatchCompanyInHubspot(
               )}`
             );
           }
+          // return; // TODO Remove after testing
         } catch (error) {
           logger.error("❌ Error processing contact:", {
             status: error?.status,
@@ -700,24 +840,53 @@ async function processBatchDealInHubspot(
   for (const [index, record] of records.entries()) {
     try {
       logger.info(`✅ Processing Job  ${JSON.stringify(record, null, 2)}`);
+      // Use promise.allSettled api here for upserting and retrieving data
 
-      // Upsert Deal in hubspot
-      const upsertDeal = await upsertDealInHubspot(record);
-      logger.info(`✅ Upserted Deal  ${JSON.stringify(upsertDeal, null, 2)}`);
+      const [upsertJob, getContacts] = await Promise.allSettled([
+        upsertDealInHubspot(record),
+        searchInServiceM8UsingCustomField(
+          "jobcontact.json",
+          "job_uuid",
+          record?.uuid
+        ),
+      ]);
 
-      // Find contact info from serviceM8
-      const query = "jobcontact.json";
-      const contacts = await searchInServiceM8UsingCustomField(
-        query,
-        "job_uuid",
-        record?.uuid
-      );
+      const upsertDeal =
+        upsertResult.status === "fulfilled" ? upsertResult.value : null;
+      const contacts =
+        contactsResult.status === "fulfilled" ? contactsResult.value : null;
+
+      if (!upsertDeal?.id) {
+        logger.error(`❌ Skipped: Could not upsert Deal for ${record.uuid}`);
+        continue; // Don't stop the whole batch, just this record
+      }
 
       if (!contacts) {
         logger.warn(`Contact info not found for ${record?.uuid}`);
         return;
       }
       logger.info(`✅ Found contacts: ${contacts?.length}`);
+
+      await Promise.allSettled(
+        contacts.map(async (contactInfo, inner_index) => {
+          try {
+            await processDealContactAssociation(contactInfo, upsertDeal?.id);
+          } catch (error) {
+            logger.error(
+              `❌ Error processing contact at index:${
+                inner_index + 1
+              } ${JSON.stringify(contactInfo, null, 2)}`,
+              {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url,
+                method: error.config?.method,
+              }
+            );
+          }
+        })
+      );
 
       const hs_client = getHubspotClient();
 

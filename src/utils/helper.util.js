@@ -83,7 +83,29 @@ function saveLastSyncTime() {
   fs.writeFileSync(filePath, data);
 }
 
+function convertAustralianFormat(phone) {
+  if (!phone) {
+    return null;
+  }
+  const rawPhone = phone;
+
+  // 1. Remove all spaces and non-digit characters
+  // let cleaned = rawPhone;
+  let cleaned = rawPhone.replace(/\D/g, "");
+
+  // 2. Replace leading '0' with '+61'
+  if (cleaned.startsWith("0")) {
+    cleaned = "+61" + cleaned.substring(1);
+  } else if (!cleaned.startsWith("61")) {
+    // Optional: Add +61 if it's missing entirely
+    cleaned = "+61" + cleaned;
+  }
+
+  return cleaned;
+}
+
 export {
+  convertAustralianFormat,
   companyProperties,
   delta,
   currentDate,

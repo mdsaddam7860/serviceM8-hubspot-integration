@@ -22,10 +22,12 @@ import {
   dealProperties,
   companyProperties,
   cleanProps,
+  convertAustralianFormat,
 } from "./utils/helper.util.js"; // Helper functions
 import { searchInHubspot } from "./services/hubspot.service.js"; // Hubspot Services
 
 export {
+  convertAustralianFormat,
   companyMappingSM8ToHS,
   companyProperties,
   cleanProps,
