@@ -13,6 +13,7 @@ import {
   searchInServiceM8,
   searchInServiceM8UsingCustomField,
   processBatchContactInServiceM8,
+  JOB_CATEGORY_UUID,
 } from "./serviceM8.service.js";
 
 async function processDealContactAssociation(
@@ -1063,13 +1064,25 @@ async function processBatchDealInHubspot(
   ]
 ) {
   // Start the timer for the entire batch execution
-  console.time("BatchProcessingTimer");
+  // console.time("BatchProcessingTimer");
+  logger.info(`Records length : ${records.length}`);
 
-  for (const [index, record] of records.entries()) {
+  const filterRecords = records.filter(
+    (record) => JOB_CATEGORY_UUID[record.category_uuid]
+  );
+
+  logger.info(`Filtered Records length : ${filterRecords.length}`);
+
+  for (const [index, record] of filterRecords.entries()) {
     try {
       logger.info(
-        `🚀 [${index + 1}/${records.length}] Processing Job: ${record.uuid}`
+        `🚀 [${index + 1}/${records.length}] Processing Job: ${JSON.stringify(
+          record,
+          null,
+          2
+        )}`
       );
+      continue;
 
       // 1. Fetch Deal and Contacts in Parallel
       const [upsertResult, contactsResult] = await Promise.allSettled([
@@ -1121,7 +1134,7 @@ async function processBatchDealInHubspot(
   }
 
   // End the timer after the loop finishes all records
-  console.timeEnd("BatchProcessingTimer");
+  // console.timeEnd("BatchProcessingTimer");
 }
 async function processBatchActivityInHubspot(
   records = [
