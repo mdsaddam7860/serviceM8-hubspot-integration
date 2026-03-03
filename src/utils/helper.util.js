@@ -21,11 +21,39 @@ function contactProperties() {
     "state",
     "zip",
     "country",
+    "website",
+    "phone",
+    "mobilephone",
     "address",
   ];
 }
 function dealProperties() {
-  return ["sourceid", "dealname", "dealstage", "amount", "hs_lastmodifieddate"];
+  return [
+    "sourceid",
+    "dealname",
+    "dealstage",
+    "amount",
+    "hs_lastmodifieddate",
+    "job_status_servicem8",
+    "job_uuid_service_m8",
+    "generated_job_id_service_m8",
+    "dealstage",
+    "pipeline",
+    "job_address_service_m8",
+    "billing_address_service_m8",
+    "job_description_service_m",
+    "amount",
+    "purchase_order_number_service_m8",
+    "quote_sent_service_m8",
+    "invoice_sent_service_m8",
+    "payment_received_service_m8",
+    "quote_sent_timestamp_service_m8",
+    "invoice_sent_timestamp_service_m8",
+    "payment_received_timestamp_service_m8",
+    "job_unsuccessful_date_service_m8",
+    "completion_date_service_m8",
+    "work_order_date_service_m8",
+  ];
 }
 function companyProperties() {
   return [
@@ -35,10 +63,16 @@ function companyProperties() {
     "domain",
     "name",
     "country",
+    "city",
+    "street",
+    "state",
+    "zip",
+    "address",
     "hs_country_code",
     "description",
     "address",
     "zip",
+    "address2",
   ];
 }
 

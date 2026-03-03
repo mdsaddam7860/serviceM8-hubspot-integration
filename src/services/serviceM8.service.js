@@ -1,11 +1,27 @@
-import { logger, delta, currentDate, clientMappingHSTOSM8 } from "../index.js";
 import { getServiceM8Client } from "../configs/serviceM8.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
+// -----------------------------------Index -----------------------------------------
 import {
+  logger,
+  delta,
+  currentDate,
+  clientMappingHSTOSM8,
+  companyMappingHSTOSM8,
+  contactMappingHSTOSM8,
+  jobMappingHSTOSM8,
+  companyContactMappingHSTOSM8,
+  contactProperties,
+  jobContactMappingHSTOSM8,
+  dealProperties,
+} from "../index.js";
+// -----------------------------------Hubspot Service -----------------------------------------
+import {
+  fetchHubSpotObject,
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
   processBatchCompanyInHubspot,
+  fetchHubSpotAssociationIds,
 } from "./hubspot.service.js";
 
 const JOB_CATEGORY_UUID = Object.freeze({
@@ -318,10 +334,11 @@ async function syncServiceM8ClientToHubSpotAsCompany() {
 // ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
 async function syncServiceM8JobToHubSpotAsDeal() {
   try {
-    const current_date = currentDate();
-    logger.info(`Getting records : ${current_date}`);
+    // const current_date = currentDate();
+    // logger.info(`Getting records : ${current_date}`);
 
-    const endpoint = `job.json?$filter=date eq ${current_date}`;
+    // const endpoint = `job.json?$filter=date eq ${current_date}`;
+    const endpoint = `job.json`;
 
     const jobStream = serviceM8Generator(endpoint);
 
@@ -339,6 +356,7 @@ async function syncServiceM8JobToHubSpotAsDeal() {
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
+      return;
     }
 
     // logger.info("✅ Full sync successful.");
@@ -463,13 +481,39 @@ async function searchInServiceM8(endpoint, uuid) {
     throw error;
   }
 }
+async function searchInServiceM8CustomFiled(endpoint, key, value) {
+  if (!endpoint || !key || !value) {
+    logger.warn(`Missing endpoint or key or value endpoint:${endpoint}
+    , key :${key}, value:${value}`);
+    return null;
+  }
+  const query = `${endpoint}$filter=${key} eq '${value}'`;
+  try {
+    const serviceM8client = getServiceM8Client();
+    const response = await serviceM8client.get(query);
+    logger.info(`Fetched ${query} : ${JSON.stringify(response.data, null, 2)}`);
+    return response.data;
+  } catch (error) {
+    logger.error(`❌ failed to fetch ${query}:${uuid}`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      // message: error.message,
+    });
+    throw error;
+  }
+}
 async function searchInServiceM8UsingCustomField(
   endpoint,
   customField,
-  customFieldValue
+  customValue
 ) {
-  if (!endpoint || !customField || !customFieldValue) {
-    logger.warn("Missing endpoint or customFieldValue or customField");
+  if (!endpoint || !customField || !customValue) {
+    logger.warn(
+      `Missing endpoint:${endpoint},or customValue:${customValue}, or customField:${customField}`
+    );
     return null;
   }
 
@@ -480,7 +524,7 @@ async function searchInServiceM8UsingCustomField(
 
     const response = await serviceM8client.get(query, {
       params: {
-        $filter: `${customField} eq '${customFieldValue}'`,
+        $filter: `${customField} eq '${customValue}'`,
       },
     });
 
@@ -505,44 +549,257 @@ async function searchInServiceM8UsingCustomField(
 
 async function upsertjobInServiceM8(record = {}) {
   try {
-    const payload = jobMappingHSTOSM8(record);
+    let existingJob = null;
+    if (record.properties?.job_uuid_service_m8) {
+      existingJob = await searchInServiceM8UsingCustomField(
+        "job.json",
+        "uuid",
+        record.properties?.job_uuid_service_m8
+      );
+    }
+
+    let payload = null;
+
+    if (existingJob && existingJob.length > 0) {
+      payload = jobMappingHSTOSM8(record, existingJob[0]?.uuid);
+    } else {
+      payload = jobMappingHSTOSM8(record);
+    }
+    logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
     const serviceM8client = getServiceM8Client();
 
     const response = await serviceM8client.post("job.json", payload);
-    logger.info(`Upsert job : ${JSON.stringify(response.data, null, 2)}`);
+    // logger.info(
+    //   `Upserted job: ${JSON.stringify(response.data, null, 2)}`
+    // );
+
+    // logger.info(
+    //   `Upserted job : ${JSON.stringify(
+    //     response?.headers?.["x-record-uuid"],
+    //     null,
+    //     2
+    //   )}`
+    // );
+
+    if (response?.data?.message === "OK") {
+      return response?.headers?.["x-record-uuid"];
+    }
 
     return response.data;
   } catch (error) {
-    logger.error("❌ Error processing Deal in Batch", error);
+    logger.error("❌ Error processing Job in upsertjobInServiceM8", {
+      status: error?.response?.status,
+      response: error?.response?.data,
+      method: error?.config?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+    });
     throw error;
   }
 }
 
-async function processBatchDealInServiceM8(records) {
+async function processBatchDealInServiceM8(
+  records = [
+    {
+      id: "250551372279",
+      properties: {
+        amount: "22725.55",
+        billing_address_service_m8: null,
+        completion_date_service_m8: null,
+        createdate: "2026-02-23T02:15:27.243Z",
+        dealname: "42184 Tallon Dev",
+        dealstage: "2114542054",
+        generated_job_id_service_m8: null,
+        hs_lastmodifieddate: "2026-03-02T22:04:03.967Z",
+        hs_object_id: "250551372279",
+        invoice_sent_service_m8: null,
+        invoice_sent_timestamp_service_m8: null,
+        job_address_service_m8: null,
+        job_description_service_m: null,
+        job_status_servicem8: "Completed",
+        job_unsuccessful_date_service_m8: null,
+        job_uuid_service_m8: null,
+        payment_received_service_m8: null,
+        payment_received_timestamp_service_m8: null,
+        pipeline: "default",
+        purchase_order_number_service_m8: null,
+        quote_sent_service_m8: null,
+        quote_sent_timestamp_service_m8: null,
+        sourceid: null,
+        work_order_date_service_m8: null,
+      },
+      createdAt: "2026-02-23T02:15:27.243Z",
+      updatedAt: "2026-03-02T22:04:03.967Z",
+      archived: false,
+      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-3/250551372279",
+    },
+    // {
+    //   id: "256557081081",
+    //   properties: {
+    //     amount: "12",
+    //     billing_address_service_m8: null,
+    //     completion_date_service_m8: null,
+    //     createdate: "2026-03-03T15:13:23.736Z",
+    //     dealname: "Test deal 2",
+    //     dealstage: "2564260296",
+    //     generated_job_id_service_m8: null,
+    //     hs_lastmodifieddate: "2026-03-03T15:14:02.929Z",
+    //     hs_object_id: "256557081081",
+    //     invoice_sent_service_m8: null,
+    //     invoice_sent_timestamp_service_m8: null,
+    //     job_address_service_m8: null,
+    //     job_description_service_m: null,
+    //     job_status_servicem8: "Quote",
+    //     job_unsuccessful_date_service_m8: null,
+    //     job_uuid_service_m8: null,
+    //     payment_received_service_m8: null,
+    //     payment_received_timestamp_service_m8: null,
+    //     pipeline: "default",
+    //     purchase_order_number_service_m8: null,
+    //     quote_sent_service_m8: null,
+    //     quote_sent_timestamp_service_m8: null,
+    //     sourceid: null,
+    //     work_order_date_service_m8: null,
+    //   },
+    //   createdAt: "2026-03-03T15:13:23.736Z",
+    //   updatedAt: "2026-03-03T15:14:02.929Z",
+    //   archived: false,
+    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-3/256557081081",
+    // },
+  ]
+) {
   try {
-    for (const [record, index] of records.entries()) {
-      logger.info(`Processing  ${index} : ${JSON.stringify(record, null, 2)}`);
-      const upsertJob = await upsertjobInServiceM8(record);
-      logger.info(`Upserted : ${JSON.stringify(upsertJob, null, 2)}`);
-      return; // TODO Remove after testing
+    for (const [index, record] of records.entries()) {
+      logger.info(
+        `Processing at index - ${index} : record ${JSON.stringify(
+          record,
+          null,
+          2
+        )}`
+      );
+
+      // if (!record?.properties?.job_status_servicem8) {
+      //   logger.warn(
+      //     `No status found for ${record.properties?.job_status_servicem8}`
+      //   );
+      //   continue;
+      // }
+
+      const [upsertJobResult, contactResult] = await Promise.allSettled([
+        upsertjobInServiceM8(record),
+        fetchHubSpotAssociationIds("deals", "contacts", record?.id),
+      ]);
+
+      const upsertJob =
+        upsertJobResult.status === "fulfilled" ? upsertJobResult.value : null;
+      // logger.info(`Upserted job : ${JSON.stringify(upsertJob, null, 2)}`);
+
+      const associated_contact_ids =
+        contactResult.status === "fulfilled" ? contactResult.value : null;
+
+      logger.info(`Upserted job : ${JSON.stringify(upsertJob, null, 2)}`);
+      // let existingJob = await searchInServiceM8UsingCustomField(
+      //   "job.json",
+      //   "job_address",
+      //   record.properties?.dealname
+      // );
+
+      // if (!upsertJob) {
+      //   logger.warn(`No company found for ${record.properties?.name}`);
+      //   continue;
+      // }
+
+      // const existingJobuuid = existingJob ? upsertJob[0]?.uuid : null;
+
+      await Promise.all(
+        associated_contact_ids.map(async (contactId) => {
+          try {
+            const contactDetails = await fetchHubSpotObject(
+              "contacts",
+              contactId,
+              dealProperties()
+            );
+
+            logger.info(
+              `contactDetails: ${JSON.stringify(contactDetails, null, 2)}`
+            );
+
+            if (contactDetails) {
+              const upsertjobcontact = await upsertJobContactInServiceM8(
+                contactDetails,
+                upsertJob
+              );
+              logger.info(
+                `Upserted upsertjobcontact: ${JSON.stringify(
+                  upsertjobcontact,
+                  null,
+                  2
+                )}`
+              );
+            }
+          } catch (error) {
+            logger.error(`❌ Error processing upsertjobcontact in batch`, {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data,
+              url: error.config?.url,
+              method: error.config?.method,
+            });
+          }
+        })
+      );
+
+      // get associated contacts from hubspot and upsert in ServiceM8
+      // const contacts = await getContactsFromHubspot(record);
+      // logger.info(`Contacts : ${JSON.stringify(contacts, null, 2)}`);
     }
   } catch (error) {
-    logger.error("❌ Error processing Deal in Batch", error);
+    logger.error("❌ Error processing Deal in Batch", {
+      status: error?.response?.status,
+      response: error?.response?.data,
+      method: error?.config?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+    });
   }
 }
 
-async function upsertClientInServiceM8(record = {}) {
+async function upsertContactInServiceM8(
+  record = {
+    id: "304393752044",
+    properties: {
+      address: "PO BOX 5042",
+      city: "gold coast, mail centre",
+      country: null,
+      createdate: "2026-02-27T04:26:09.071Z",
+      email: "bflynn@goldcoast.qld.gov.au",
+      firstname: "Ben",
+      hs_object_id: "304393752044",
+      lastmodifieddate: "2026-02-27T12:22:02.161Z",
+      lastname: "Flynn",
+      phone: "(07) 5582 8909",
+      sourceid: null,
+      state: "QLD",
+      website: null,
+      zip: "9726",
+    },
+    createdAt: "2026-02-27T04:26:09.071Z",
+    updatedAt: "2026-02-27T12:22:02.161Z",
+    archived: false,
+    url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-1/304393752044",
+  }
+) {
   try {
-    const payload = clientMappingHSTOSM8(record);
+    const payload = contactMappingHSTOSM8(record);
     const serviceM8client = getServiceM8Client();
 
     logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
 
     const response = await serviceM8Executor(
       () => serviceM8client.post("company.json", payload),
-      { name: "upsertClientInServiceM8" }
+      { name: "upsertContactInServiceM8" }
     );
-    // logger.info(`Upsert job : ${JSON.stringify(response, null, 2)}`);
+    logger.info(`Upsert Contact : ${JSON.stringify(response.data, null, 2)}`);
     // console.log("response", response);
 
     return response.data;
@@ -557,18 +814,382 @@ async function upsertClientInServiceM8(record = {}) {
     throw error;
   }
 }
-async function processBatchContactInServiceM8(records = []) {
+async function upsertCompanyContactInServiceM8(record = {}, company_uuid) {
+  try {
+    // search contact in serviceM8 based on email if found update else create(upsert based on email)
+
+    let existingContact = null;
+    existingContact = await searchInServiceM8UsingCustomField(
+      "companycontact.json",
+      "email",
+      record.properties?.email
+    );
+
+    let payload = null;
+    if (existingContact && existingContact.length > 0) {
+      logger.info(
+        `Existing companycontact: ${JSON.stringify(existingContact)}`
+      );
+      payload = companyContactMappingHSTOSM8(
+        record,
+        company_uuid,
+        existingContact
+      );
+    } else {
+      payload = companyContactMappingHSTOSM8(record, company_uuid);
+    }
+
+    if (!payload) {
+      logger.warn(`Payload not found for ${JSON.stringify(record, null, 2)}`);
+      return;
+    }
+
+    const serviceM8client = getServiceM8Client();
+
+    logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
+
+    const response = await serviceM8Executor(
+      () => serviceM8client.post("companycontact.json", payload),
+      { name: `upsertCompanyContactInServiceM8 ${record.id}` }
+    );
+    // logger.info(`Upsert CompanyContact : ${JSON.stringify(response.data, null, 2)}`);
+    // console.log("response", response);
+
+    return response.data;
+  } catch (error) {
+    logger.error("❌ Error processing Client in Batch", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+    throw error;
+  }
+}
+async function upsertJobContactInServiceM8(record = {}, job_uuid) {
+  try {
+    // search contact in serviceM8 based on email if found update else create(upsert based on email)
+
+    let existingContact = null;
+    existingContact = await searchInServiceM8UsingCustomField(
+      "jobcontact.json",
+      "email",
+      record.properties?.email
+    );
+
+    let payload = null;
+    if (existingContact && existingContact.length > 0) {
+      logger.info(`Existing jobcontact: ${JSON.stringify(existingContact)}`);
+      payload = jobContactMappingHSTOSM8(record, job_uuid, existingContact);
+    } else {
+      payload = jobContactMappingHSTOSM8(record, job_uuid);
+    }
+
+    if (!payload) {
+      logger.warn(`Payload not found for ${JSON.stringify(record, null, 2)}`);
+      return;
+    }
+
+    const serviceM8client = getServiceM8Client();
+
+    logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
+
+    const response = await serviceM8Executor(
+      () => serviceM8client.post("jobcontact.json", payload),
+      { name: `upsertCompanyContactInServiceM8 ${record.id}` }
+    );
+    // logger.info(`Upsert CompanyContact : ${JSON.stringify(response.data, null, 2)}`);
+    // console.log("response", response);
+
+    return response.data;
+  } catch (error) {
+    logger.error("❌ Error processing Client in Batch", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+    throw error;
+  }
+}
+async function upsertCompanyInServiceM8(
+  record = {
+    id: "195745478080",
+    properties: {
+      about_us: null,
+      address: null,
+      address2: null,
+      city: null,
+      country: null,
+      createdate: "2025-12-04T06:06:37.413Z",
+      description: null,
+      domain: "goldcoast.qld.gov.au",
+      hs_country_code: null,
+      hs_lastmodifieddate: "2026-03-02T06:12:58.173Z",
+      hs_object_id: "195745478080",
+      name: "City of Gold Coast",
+      sourceid: null,
+      state: null,
+      zip: null,
+    },
+    createdAt: "2025-12-04T06:06:37.413Z",
+    updatedAt: "2026-03-02T06:12:58.173Z",
+    archived: false,
+    url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
+  }
+) {
+  try {
+    // Seacrh based on name , if found update else create(upsert based on name)
+
+    let existingCompany = null;
+    existingCompany = await searchInServiceM8UsingCustomField(
+      "company.json",
+      "name",
+      record.properties?.name
+    );
+
+    let payload = null;
+    if (existingCompany && existingCompany.length > 0) {
+      logger.info(`Existing company: ${JSON.stringify(existingCompany)}`);
+      payload = companyMappingHSTOSM8(record, existingCompany);
+    } else {
+      payload = companyMappingHSTOSM8(record);
+    }
+    const serviceM8client = getServiceM8Client();
+
+    logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
+
+    const response = await serviceM8Executor(
+      () => serviceM8client.post("company.json", payload),
+      { name: "upsertClientInServiceM8" }
+    );
+    // logger.info(`Upsert company : ${JSON.stringify(response.data, null, 2)}`);
+    // console.log("response", response);
+
+    return response.data;
+  } catch (error) {
+    logger.error("❌ Error processing Client in Batch", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+    throw error;
+  }
+}
+
+// Process Batch Contact from Hubspot to Service M8
+async function processBatchContactInServiceM8(
+  records = [
+    {
+      id: "195745478080",
+      properties: {
+        about_us: null,
+        address: null,
+        address2: null,
+        city: null,
+        country: null,
+        createdate: "2025-12-04T06:06:37.413Z",
+        description: null,
+        domain: "goldcoast.qld.gov.au",
+        hs_country_code: null,
+        hs_lastmodifieddate: "2026-03-02T06:12:58.173Z",
+        hs_object_id: "195745478080",
+        name: "City of Gold Coast",
+        sourceid: null,
+        state: null,
+        zip: null,
+      },
+      createdAt: "2025-12-04T06:06:37.413Z",
+      updatedAt: "2026-03-02T06:12:58.173Z",
+      archived: false,
+      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
+    },
+  ]
+) {
   try {
     for (const [index, record] of records.entries()) {
       logger.info(
         `Processing at index  ${index} : ${JSON.stringify(record, null, 2)}`
       );
-      const upsertClient = await upsertClientInServiceM8(record);
-      logger.info(`Upserted Client : ${JSON.stringify(upsertClient, null, 2)}`);
+      const upsertClient = await upsertContactInServiceM8(record);
+      logger.info(
+        `Upserted Contact : ${JSON.stringify(upsertClient, null, 2)}`
+      );
       return;
     }
   } catch (error) {
-    logger.error(`❌ Error processing Client in Batch`, {
+    logger.error(`❌ Error processing Contact in Batch`, {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
+  }
+}
+// Process Batch Company from Hubspot to Service M8
+async function processBatchCompanyInServiceM8(
+  records = [
+    {
+      id: "195745478080",
+      properties: {
+        about_us: null,
+        address: null,
+        address2: null,
+        city: null,
+        country: null,
+        createdate: "2025-12-04T06:06:37.413Z",
+        description: null,
+        domain: "goldcoast.qld.gov.au",
+        hs_country_code: null,
+        hs_lastmodifieddate: "2026-03-02T06:12:58.173Z",
+        hs_object_id: "195745478080",
+        name: "City of Gold Coast",
+        sourceid: null,
+        state: null,
+        zip: null,
+      },
+      createdAt: "2025-12-04T06:06:37.413Z",
+      updatedAt: "2026-03-02T06:12:58.173Z",
+      archived: false,
+      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
+    },
+  ]
+) {
+  try {
+    for (const [index, record] of records.entries()) {
+      logger.info(
+        `Processing at index  ${index} : ${JSON.stringify(record, null, 2)}`
+      );
+      const [upsertClientResult, contactResult] = await Promise.allSettled([
+        upsertCompanyInServiceM8(record),
+        fetchHubSpotAssociationIds("companies", "contacts", record?.id),
+      ]);
+
+      const upsertClient =
+        upsertClientResult.status === "fulfilled"
+          ? upsertClientResult.value
+          : null;
+
+      const associated_contact_ids =
+        contactResult.status === "fulfilled" ? contactResult.value : null;
+      logger.info(
+        `Upserted Company : ${JSON.stringify(upsertClient, null, 2)}`
+      );
+
+      logger.info(
+        `associated_contact_ids : ${JSON.stringify(
+          associated_contact_ids,
+          null,
+          2
+        )}`
+      );
+
+      // find company in serviceM8 based on name if not found log and continue with next record if found get uuid and then upsert company contact in serviceM8 for associated contacts
+      let existingCompany = await searchInServiceM8UsingCustomField(
+        "company.json",
+        "name",
+        record.properties?.name
+      );
+
+      if (!existingCompany) {
+        logger.warn(`No company found for ${record.properties?.name}`);
+        continue;
+      }
+
+      const existingCompanyuuid = existingCompany
+        ? existingCompany[0]?.uuid
+        : null;
+
+      // get contact details from husbpot and upsert to serviceM8 as companycontact
+      // await Promise.allSettled(
+      //   associated_contact_ids.map(async (contactId) => {
+      //     try {
+      //       const contactDetails = await fetchHubSpotObject(
+      //         "contacts",
+      //         contactId,
+      //         contactProperties()
+      //       );
+
+      //       // upsert companyContact in serviceM8 which will be associated with company using company uuid
+      //       const upsetrCompanyContact = await upsertCompanyContactInServiceM8(
+      //         contactDetails,
+      //         existingCompanyuuid
+      //       );
+      //       logger.info(
+      //         `Upserted CompnayContact : ${JSON.stringify(
+      //           upsetrCompanyContact,
+      //           null,
+      //           2
+      //         )}`
+      //       );
+      //     } catch (error) {
+      //       logger.error(`❌ Error processing Compnay in Batch`, {
+      //         message: error.message,
+      //         status: error.response?.status,
+      //         data: error.response?.data,
+      //         url: error.config?.url,
+      //         method: error.config?.method,
+      //       });
+      //     }
+      //   })
+      // );
+
+      // get contact details from husbpot and upsert to serviceM8 as companycontact in batch for associated contacts
+
+      await Promise.all(
+        associated_contact_ids.map(async (contactId) => {
+          try {
+            const contactDetails = await fetchHubSpotObject(
+              "contacts",
+              contactId,
+              contactProperties()
+            );
+
+            logger.info(
+              `contactDetails: ${JSON.stringify(contactDetails, null, 2)}`
+            );
+
+            if (contactDetails) {
+              const upsertCompanyContact =
+                await upsertCompanyContactInServiceM8(
+                  contactDetails,
+                  existingCompanyuuid
+                );
+              logger.info(
+                `Upserted CompanyContact: ${JSON.stringify(
+                  upsertCompanyContact,
+                  null,
+                  2
+                )}`
+              );
+            }
+          } catch (error) {
+            logger.error(`❌ Error processing CompanyContact in batch`, {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data,
+              url: error.config?.url,
+              method: error.config?.method,
+            });
+          }
+        })
+      );
+
+      // find associated contact in hubspot
+      // const associated_contact_ids = await fetchHubSpotAssociationIds(
+      //   "companies",
+      //   "contacts",
+      //   company.id
+      // );
+      // return;
+    }
+  } catch (error) {
+    logger.error(`❌ Error processing Compnay in Batch`, {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
@@ -579,21 +1200,30 @@ async function processBatchContactInServiceM8(records = []) {
 }
 
 export {
+  JOB_CATEGORY_UUID,
+  // syncServiceM8CompanyContactToHubSpotAsContact,
+  upsertCompanyContactInServiceM8,
+  upsertContactInServiceM8,
+  upsertCompanyInServiceM8,
+  processBatchCompanyInServiceM8,
   processBatchContactInServiceM8,
+  searchInServiceM8CustomFiled,
   processBatchDealInServiceM8,
   getAllClient,
   getAllJobs,
   getAllStaffs,
   getAllNotes,
-  syncCompaniesTask,
-  syncServiceM8ToHubSpot,
-  syncServiceM8ClientToHubSpotAsContact,
-  syncServiceM8JobToHubSpotAsDeal,
-  syncServiceM8NoteToHubSpotAsActivity,
-  searchInServiceM8,
-  upsertjobInServiceM8,
-  syncServiceM8ClientToHubSpotAsCompany,
   searchInServiceM8UsingCustomField,
-  // syncServiceM8CompanyContactToHubSpotAsContact,
-  JOB_CATEGORY_UUID,
+  syncCompaniesTask,
+  upsertjobInServiceM8,
+  syncServiceM8ToHubSpot,
+  searchInServiceM8,
+  // ✅ Fetch Client from serviceM8 and sync to Hubspot as Contact
+  syncServiceM8ClientToHubSpotAsContact,
+  // ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
+  syncServiceM8JobToHubSpotAsDeal,
+  // ✅ Fetch Note from serviceM8 and sync to Hubspot as Activity
+  syncServiceM8NoteToHubSpotAsActivity,
+  // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
+  syncServiceM8ClientToHubSpotAsCompany,
 };

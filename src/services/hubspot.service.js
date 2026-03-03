@@ -6,6 +6,7 @@ import {
   companyMappingSM8ToHS,
   contactProperties,
   dealProperties,
+  companyProperties,
 } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
@@ -14,6 +15,8 @@ import {
   searchInServiceM8UsingCustomField,
   processBatchContactInServiceM8,
   JOB_CATEGORY_UUID,
+  processBatchDealInServiceM8,
+  processBatchCompanyInServiceM8,
 } from "./serviceM8.service.js";
 
 async function processDealContactAssociation(
@@ -1001,51 +1004,50 @@ async function processBatchCompanyInHubspot(
 async function processBatchDealInHubspot(
   records = [
     {
-      uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
+      uuid: "05a10154-0123-45bc-804a-2396df4e950d",
       active: 1,
-      date: "2026-02-01 00:00:00",
-      job_address: "35 Wigmore St,\nWillowbank QLD 4306",
-      billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
+      date: "2025-12-11 00:00:00",
+      job_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
+      billing_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
       status: "Completed",
       quote_date: "0000-00-00 00:00:00",
-      work_order_date: "2026-02-01 01:12:50",
+      work_order_date: "2025-12-11 15:37:49",
       work_done_description: "",
-      lng: 152.6862632,
-      lat: -27.6595746,
-      generated_job_id: "41339",
-      completion_date: "2026-02-10 12:53:30",
-      completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
+      lng: 153.1337208,
+      lat: -27.461306,
+      generated_job_id: "39399",
+      completion_date: "2025-12-17 12:34:29",
+      completion_actioned_by_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
       unsuccessful_date: "0000-00-00 00:00:00",
-      payment_date: "2026-02-10 00:00:00",
+      payment_date: "2025-12-18 00:00:00",
       payment_method: "Xero",
-      payment_amount: 340,
+      payment_amount: 570,
       payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-      edit_date: "2026-02-11 06:11:17",
+      edit_date: "2025-12-19 05:45:46",
       geo_is_valid: 1,
       payment_note: "",
       ready_to_invoice: "1",
-      ready_to_invoice_stamp: "2026-02-11 05:54:42",
-      company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
+      ready_to_invoice_stamp: "2025-12-18 05:57:35",
+      company_uuid: "6a0dadab-f917-4a91-8038-2396dee63ebb",
       geo_country: "Australia",
-      geo_postcode: "4306",
+      geo_postcode: "4174",
       geo_state: "QLD",
-      geo_city: "Willowbank",
-      geo_street: "Wigmore Street",
-      geo_number: "35",
+      geo_city: "Hemmant",
+      geo_street: "Hemmant Tingalpa Road",
+      geo_number: "412",
       payment_processed: 1,
-      payment_processed_stamp: "2026-02-11 05:56:45",
+      payment_processed_stamp: "2025-12-18 05:59:03",
       payment_received: 1,
-      payment_received_stamp: "2026-02-10 00:00:00",
-      total_invoice_amount: "340.0000",
-      job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
-      category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
+      payment_received_stamp: "2025-12-18 00:00:00",
+      total_invoice_amount: "570.0000",
+      job_is_scheduled_until_stamp: "2025-12-17 08:00:00",
+      category_uuid: "f4460be7-395d-42ca-a465-22f384e3a8fb",
       queue_uuid: "",
       queue_expiry_date: "0000-00-00 00:00:00",
-      badges:
-        '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
+      badges: "",
       invoice_sent: true,
       purchase_order_number: "",
-      invoice_sent_stamp: "2026-02-10 12:53:36",
+      invoice_sent_stamp: "2025-12-17 12:33:30",
       queue_assigned_staff_uuid: "",
       quote_sent_stamp: "0000-00-00 00:00:00",
       quote_sent: false,
@@ -1055,11 +1057,10 @@ async function processBatchDealInHubspot(
       active_network_request_uuid: "",
       customfield_lead_source: "",
       customfield_xero_tracking_cat_1: "",
-      customfield_xero_tracking_cat_2: "HSTP Service",
+      customfield_xero_tracking_cat_2: "",
       related_knowledge_articles: false,
-      job_description:
-        "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
-      created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+      job_description: "17 DEC - HARMOR TO PUMP OUT SEPTIC AND GREASE TRAP",
+      created_by_staff_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
     },
   ]
 ) {
@@ -1082,7 +1083,6 @@ async function processBatchDealInHubspot(
           2
         )}`
       );
-      continue;
 
       // 1. Fetch Deal and Contacts in Parallel
       const [upsertResult, contactsResult] = await Promise.allSettled([
@@ -1126,10 +1126,13 @@ async function processBatchDealInHubspot(
         )
       );
     } catch (error) {
-      logger.error(
-        `❌ Fatal error processing Job ${record.uuid}:`,
-        error.message
-      );
+      logger.error(`❌ Fatal error processing Job ${record.uuid}:`, {
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+      });
     }
   }
 
@@ -1260,166 +1263,17 @@ async function processBatchActivityInHubspot(
   }
 }
 
-// async function* hubspotGenerator(endpoint) {
-//   let after = null;
-//   let pageCount = 0;
-//   let totalProcessed = 0;
-//   const startTime = Date.now();
-
-//   try {
-//     do {
-//       // fetch a page
-//       pageCount++;
-//       const response = await hubspotExecutor(
-//         async () => {
-//           return await axiosInstance.get(endpoint, {
-//             params: { after, limit: 100 },
-//           });
-//         },
-//         { endpoint, page: pageCount }
-//       );
-//       const records = response.data?.results || [];
-//       // const records = Array.isArray(data) ? data : [data];
-
-//       totalProcessed += records.length;
-
-//       // Calculate Stats
-//       const elapsedSeconds = (Date.now() - startTime) / 1000;
-//       const recordsPerSecond = (totalProcessed / elapsedSeconds).toFixed(2);
-
-//       // Yield data + metadata for the consumer
-//       yield {
-//         records,
-//         stats: {
-//           page: pageCount,
-//           totalProcessed,
-//           recordsPerSecond,
-//           elapsedSeconds: elapsedSeconds.toFixed(1),
-//         },
-//       };
-
-//       after = response.data?.paging?.next?.after;
-
-//       logger.info(`[Hubspot Progress] ${endpoint}`, {
-//         page: pageCount,
-//         processed: totalProcessed,
-//         speed: `${recordsPerSecond} rec/sec`,
-//       });
-//     } while (after);
-//   } catch (error) {
-//     logger.error(`Stream interrupted at page ${pageCount}`, {
-//       status: error.response?.status,
-//       response: error.response?.data,
-//       method: error.config?.method,
-//       url: error.config?.url,
-//       headers: error.config?.headers,
-//     });
-//     throw error;
-//   }
-// }
-
-// async function* hubspotGenerator(
-//   endpoint,
-//   properties = [],
-//   filterGroups,
-//   {
-//     axiosInstance = getHSAxios(),
-//     executor = hubspotExecutor,
-//     log = logger,
-//   } = {}
-// ) {
-//   let after = undefined;
-//   let pageCount = 0;
-//   let totalProcessed = 0;
-//   const startTime = Date.now();
-
-//   try {
-//     do {
-//       pageCount++;
-
-//       const response = await executor(
-//         async () => {
-//           return await axiosInstance.get(endpoint, {
-//             params: {
-//               limit: 100,
-//               after,
-//               filterGroups: filterGroups,
-//               ...(properties.length && { properties: properties.join(",") }),
-//             },
-//           });
-//         },
-//         { endpoint, page: pageCount }
-//       );
-
-//       const records = response.data?.results || [];
-
-//       totalProcessed += records.length;
-
-//       const elapsedSeconds = (Date.now() - startTime) / 1000;
-//       const recordsPerSecond =
-//         elapsedSeconds > 0
-//           ? (totalProcessed / elapsedSeconds).toFixed(2)
-//           : "0.00";
-
-//       yield {
-//         records,
-//         stats: {
-//           page: pageCount,
-//           totalProcessed,
-//           recordsPerSecond,
-//           elapsedSeconds: elapsedSeconds.toFixed(1),
-//         },
-//       };
-
-//       after = response.data?.paging?.next?.after;
-
-//       // log.info(`[HubSpot Progress] ${endpoint}`, {
-//       //   page: pageCount,
-//       //   processed: totalProcessed,
-//       //   speed: `${recordsPerSecond} rec/sec`,
-//       // });
-//     } while (after);
-//   } catch (error) {
-//     log.error(`Stream interrupted at page ${pageCount}`, {
-//       status: error.response?.status,
-//       response: error.response?.data,
-//       method: error.config?.method,
-//       url: error.config?.url,
-//       headers: error.config?.headers,
-//     });
-//     throw error;
-//   }
-// }
-
-// async function syncContact() {
-//   try {
-//     const contactStream = hubspotGenerator("/crm/v3/objects/contacts");
-
-//     for await (const { records, stats } of contactStream) {
-//       // 1. Process the batch (e.g., Save to DB)
-//       // await processBatchInDatabase(records);
-
-//       // logger.info(`Processing a batch of ${records.length} companies...`);
-//       // logger.info(`Stats : ${JSON.stringify(stats, null, 2)}`);
-
-//       logger.info(`[HubSpot Progress] `, {
-//         page: stats.pageCount,
-//         processed: stats.totalProcessed,
-//         speed: `${stats.recordsPerSecond} rec/sec`,
-//       });
-//     }
-//   } catch (error) {
-//     logger.error(`❌ Error processing Contact in Batch`, {
-//       status: error?.status,
-//       response: error.response?.data,
-//       method: error?.method,
-//       url: error?.config?.url,
-//       headers: error?.config?.headers,
-//     });
-//     logger.error(`error`, error);
-//   }
-// }
-
+/**
+ * Generator function to stream records from Hubspot
+ * @param {string} endpoint - The endpoint to stream records from
+ * @param {Object} [options] - Optional parameters
+ * @param {string[]} [options.properties] - The properties to fetch from Hubspot
+ * @param {Object[]} [options.filterGroups] - The filter groups to apply to the stream
+ * @param {import("axios").AxiosInstance} [options.axiosInstance] - The Axios instance to use for the stream
+ * @param {function} [options.executor] - The executor function to use for the stream
+ * @param {import("pino")} [options.log] - The logger to use for debugging
+ * @returns {Generator<{records: Object[], stats: Object}>}
+ */
 async function* hubspotGenerator(
   endpoint,
   {
@@ -1548,13 +1402,7 @@ async function searchInHubspot(
 async function syncHubspotDealToServiceM8Job() {
   try {
     const endpoint = "/crm/v3/objects/deals";
-    const properties = [
-      "sourceid",
-      "dealname",
-      "dealstage",
-      "amount",
-      "hs_latest_approval_status",
-    ];
+    const properties = dealProperties();
     const dealStream = hubspotGenerator(endpoint, properties);
 
     for await (const { records, stats } of dealStream) {
@@ -1564,7 +1412,7 @@ async function syncHubspotDealToServiceM8Job() {
         `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
       );
 
-      // await processBatchDealInServiceM8(records);
+      await processBatchDealInServiceM8(records);
       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
@@ -1602,7 +1450,7 @@ async function syncHubspotContactToServiceM8Client() {
     // const contactStream = hubspotGenerator(endpoint, properties, filterGroups);
 
     for await (const { records, stats } of contactStream) {
-      // await processBatchContactInServiceM8(records);
+      await processBatchContactInServiceM8(records);
       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
@@ -1611,7 +1459,7 @@ async function syncHubspotContactToServiceM8Client() {
       // return;
     }
   } catch (error) {
-    logger.error("❌ Error processing Deal in Batch", {
+    logger.error("❌ Error processing Contacts in Batch", {
       status: error?.status,
       response: error.response?.data,
       method: error?.method,
@@ -1621,15 +1469,137 @@ async function syncHubspotContactToServiceM8Client() {
     });
   }
 }
+// ✅ Fetch company from hubspot and sync to serviceM8 as company(client)
+async function syncHubspotCompanyToServiceM8Client() {
+  try {
+    const lastSyncTime = "2026-02-14T10:00:00.000Z";
+    const endpoint = "/crm/v3/objects/companies";
+
+    const filterGroups = [
+      {
+        filters: [
+          {
+            propertyName: "lastmodifieddate",
+            operator: "GT",
+            value: lastSyncTime,
+          },
+        ],
+      },
+    ];
+
+    const contactStream = hubspotGenerator("/crm/v3/objects/contacts", {
+      properties: companyProperties(),
+      filterGroups,
+    });
+
+    // const contactStream = hubspotGenerator(endpoint, properties, filterGroups);
+
+    for await (const { records, stats } of contactStream) {
+      await processBatchCompanyInServiceM8(records);
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      // return;
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Companies in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+
+async function fetchHubSpotAssociationIds(
+  fromObject = "companies",
+  toObject = "contacts",
+  objectId
+) {
+  if (!fromObject || !toObject || !objectId) {
+    logger.warn(
+      `Missing fromObject or toObject or objectId fromObject:${fromObject}, toObject:${toObject}, objectId:${objectId}`
+    );
+    return null;
+  }
+  let associatedIds = [];
+  try {
+    // fetch associated ids from hubspot
+    const endpoint = `/crm/v3/objects/${fromObject}/${objectId}/associations/${toObject}`;
+    const client = getHSAxios();
+    const response = await client.get(endpoint);
+
+    const results = response.data?.results || [];
+
+    associatedIds = results.reduce((acc, item) => {
+      acc.push(item.id);
+      return acc;
+    }, []);
+
+    // logger.info(
+    //   `[Hubspot] ${endpoint} : ${JSON.stringify(associatedIds, null, 2)}`
+    // );
+
+    return associatedIds || [];
+  } catch (error) {
+    logger.error(`❌ Error processing search in Hubspot:getAssociatedIds`, {
+      httpStatus: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+async function fetchHubSpotObject(object, objectId, properties) {
+  if (!object || !objectId) {
+    logger.warn(
+      `Missing object or objectId | object:${object}, objectId:${objectId}`
+    );
+    return null;
+  }
+  try {
+    // fetch object from hubspot
+    const endpoint = `/crm/v3/objects/${object}/${objectId}`;
+    const client = getHSAxios();
+    const response = await client.get(endpoint, {
+      params: {
+        properties,
+      },
+    });
+
+    return response?.data || null;
+  } catch (error) {
+    logger.error(`❌ Error processing search in Hubspot:fetchHubSpotObject`, {
+      httpStatus: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
 export {
-  syncHubspotContactToServiceM8Client,
+  fetchHubSpotObject,
+  fetchHubSpotAssociationIds,
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
   syncContact,
   hubspotGenerator,
   searchInHubspot,
-  syncHubspotDealToServiceM8Job,
   processBatchCompanyInHubspot,
   findContactInHubspot,
+  // ✅ Fetch deal from hubspot and sync to serviceM8 as Job, Job will be only one way sync from HS-SM8
+  syncHubspotDealToServiceM8Job,
+  // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
+  syncHubspotContactToServiceM8Client,
+  // ✅ Fetch company from hubspot and sync to serviceM8 as company(client)
+  syncHubspotCompanyToServiceM8Client,
 };
