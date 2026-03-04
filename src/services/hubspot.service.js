@@ -1182,10 +1182,14 @@ async function processBatchDealInHubspot(
         ),
       ]);
 
-      const upsertDeal =
-        upsertResult.status === "fulfilled" ? upsertResult.value : null;
+      if (upsertResult.status === "rejected") {
+        logger.error(`❌ Skipped: Could not upsert Deal for ${record.uuid}`);
+        continue;
+      }
+
+      const upsertDeal = upsertResult.value;
       const contacts =
-        contactsResult.status === "fulfilled" ? contactsResult.value : null;
+        contactsResult.status === "fulfilled" ? contactsResult.value : [];
 
       // 2. Guard: Handle HubSpot Upsert Failure
       if (!upsertDeal?.id) {
@@ -1213,7 +1217,6 @@ async function processBatchDealInHubspot(
           processDealContactAssociation(contactInfo, upsertDeal.id, inner_index)
         )
       );
-      return; // TODO Remove after testing
     } catch (error) {
       logger.error(`❌ Fatal error processing Job ${record.uuid}:`, {
         status: error?.status,

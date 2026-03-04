@@ -688,44 +688,6 @@ async function processBatchDealInServiceM8(
       if (associated_contact_ids.length > 0) {
         await processAssociatedContacts(associated_contact_ids, upsertJob);
       }
-
-      // await Promise.allSettled(
-      //   associated_contact_ids.map(async (contactId) => {
-      //     try {
-      //       const contactDetails = await fetchHubSpotObject(
-      //         "contacts",
-      //         contactId,
-      //         dealProperties()
-      //       );
-
-      //       logger.info(
-      //         `contactDetails: ${JSON.stringify(contactDetails, null, 2)}`
-      //       );
-
-      //       if (contactDetails) {
-      //         const upsertjobcontact = await upsertJobContactInServiceM8(
-      //           contactDetails,
-      //           upsertJob
-      //         );
-      //         logger.info(
-      //           `Upserted upsertjobcontact: ${JSON.stringify(
-      //             upsertjobcontact,
-      //             null,
-      //             2
-      //           )}`
-      //         );
-      //       }
-      //     } catch (error) {
-      //       logger.error(`❌ Error processing upsertjobcontact in batch`, {
-      //         message: error.message,
-      //         status: error.response?.status,
-      //         data: error.response?.data,
-      //         url: error.config?.url,
-      //         method: error.config?.method,
-      //       });
-      //     }
-      //   })
-      // );
     }
   } catch (error) {
     logger.error("❌ Error processing Deal in Batch", {
