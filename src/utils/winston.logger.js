@@ -24,7 +24,7 @@ const consoleFormat = printf(
         ? `\n${JSON.stringify(meta, null, 2)}`
         : "";
 
-    return `[${level}] ${timestamp} - ${stack || message}${metaString}`;
+    return `${timestamp}  [${level}] - ${stack || message}${metaString}`;
   }
 );
 
@@ -32,7 +32,7 @@ const fileFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
   const metaString =
     meta && Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
 
-  return `[${level}] ${timestamp} - ${stack || message}${metaString}`;
+  return `${timestamp}  [${level}] - ${stack || message}${metaString}`;
 });
 
 const productionLogger = () => {

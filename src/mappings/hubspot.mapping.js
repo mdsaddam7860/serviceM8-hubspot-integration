@@ -1,5 +1,6 @@
 import { logger, cleanProps, convertAustralianFormat } from "../index.js";
 
+import { JOB_CATEGORY_UUID } from "../services/serviceM8.service.js";
 function extractName(fullName = "") {
   if (typeof fullName !== "string") {
     return { firstName: "", lastName: "" };
@@ -190,6 +191,7 @@ function dealMappingSM8ToHS(record = {}) {
   };
 
   const payload = cleanProps({
+    servicem8_job_category: JOB_CATEGORY_UUID[record?.category_uuid],
     // --- Identifiers & Status ---
     job_uuid_service_m8: record?.uuid,
     job_status_servicem8: record?.status,

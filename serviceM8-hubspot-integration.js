@@ -37,6 +37,8 @@ import {
 
 // ------------------------------
 import { getLastSyncTime } from "./src/utils/helper.util.js";
+import "./src/jobs/serviceM8-hubspot.poller.js";
+import "./src/jobs/hubspot-serviceM8.poller.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -60,7 +62,7 @@ serverInit();
 // syncHubspotContactToServiceM8Client();
 // searchInServiceM8("company.json", "0004567a-2c25-4d1c-bdad-1cd4559a391b");
 // syncServiceM8ClientToHubSpotAsCompany();
-processBatchDealInServiceM8();
+// syncServiceM8JobToHubSpotAsDeal();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client
