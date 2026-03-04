@@ -36,6 +36,8 @@ import {
   companyProperties,
   cleanProps,
   convertAustralianFormat,
+  getLastSyncTime,
+  saveLastSyncTime,
 } from "./utils/helper.util.js"; // Helper functions
 
 // ------------------------------------------------Hubspot Services-----------------------------------------
@@ -45,6 +47,8 @@ import {
 } from "./services/hubspot.service.js"; // Hubspot Services
 
 export {
+  getLastSyncTime,
+  saveLastSyncTime,
   jobContactMappingHSTOSM8,
   companyContactMappingHSTOSM8,
   fetchHubSpotAssociationIds,

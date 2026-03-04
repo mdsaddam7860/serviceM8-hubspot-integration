@@ -1,6 +1,8 @@
+import fs from "fs";
+import path from "path";
 function delta() {
   const date = new Date();
-  date.setDate(date.getDate() - 9);
+  date.setDate(date.getDate() - 2);
 
   const previousDate = date.toISOString().split("T")[0];
   return previousDate;
@@ -103,18 +105,43 @@ function cleanProps(obj) {
   );
 }
 
-const filePath = `${process.cwd()}/lastSyncTime.json`;
+// Use path.join to ensure cross-platform compatibility (Windows vs Mac/Linux)
+const filePath = path.join(process.cwd(), "lastSyncTime.json");
 
+/**
+ * Reads the last sync time from the file.
+ * If the file doesn't exist, it defaults to 1 hour ago.
+ */
 function getLastSyncTime() {
-  // get date and time one hour ago and save it into file
-  console.log("CWD", process.cwd());
-  const data = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(data);
+  try {
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, "utf-8");
+      return JSON.parse(data).lastSync;
+    }
+  } catch (error) {
+    console.error("Error reading sync file, falling back to default.", error);
+  }
+
+  // Fallback: If no file exists, return the timestamp from 1 hour ago
+  const oneHourAgo = new Date();
+  oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+  return oneHourAgo.toISOString();
 }
 
+/**
+ * Saves the current ISO date/time to the file.
+ */
 function saveLastSyncTime() {
-  const data = JSON.stringify(currentDate());
-  fs.writeFileSync(filePath, data);
+  const syncData = {
+    lastSync: new Date().toISOString(),
+  };
+
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(syncData, null, 2));
+    console.log("Sync time updated to:", syncData.lastSync);
+  } catch (error) {
+    console.error("Failed to save sync time:", error);
+  }
 }
 
 function convertAustralianFormat(phone) {

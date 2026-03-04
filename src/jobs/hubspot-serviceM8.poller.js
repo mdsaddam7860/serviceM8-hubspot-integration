@@ -11,7 +11,7 @@ import {
 
 let isRunning = false; // Flag to prevent overlapping executions
 logger.info(`Scheduler Initialized fro Hubspot-ServiceM8 successfully...`);
-const schedulerFrequesncy = "*/5 * * * * *"; // Every 5 seconds (for testing, adjust as needed for production)
+const schedulerFrequesncy = "0 */30 * * * *"; // Every 30 min (for testing, adjust as needed for production)
 cron.schedule(schedulerFrequesncy, async () => {
   if (isRunning) {
     logger.info(`Hubspot-ServiceM8 is already running...`);
@@ -19,6 +19,11 @@ cron.schedule(schedulerFrequesncy, async () => {
   }
   // Simultaneously handle both ServiceM8 and Hubspot tasks
   logger.info("Polling Hubspot-ServiceM8 started...");
+  await Promise.allSettled([
+    syncHubspotDealToServiceM8Job,
+    syncHubspotContactToServiceM8Client,
+    syncHubspotCompanyToServiceM8Client,
+  ]);
   try {
   } catch (error) {
     logger.error("❌ Critical startup failure:", {

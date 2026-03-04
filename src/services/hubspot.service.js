@@ -7,6 +7,8 @@ import {
   contactProperties,
   dealProperties,
   companyProperties,
+  getLastSyncTime,
+  saveLastSyncTime,
 } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
@@ -1488,9 +1490,26 @@ async function searchInHubspot(
 // ✅ Fetch deal from hubspot and sync to serviceM8 as Job, Job will be only one way sync from HS-SM8
 async function syncHubspotDealToServiceM8Job() {
   try {
+    const lastSyncISO = getLastSyncTime();
+    const lastSyncMillis = new Date(lastSyncISO).getTime().toString();
+
     const endpoint = "/crm/v3/objects/deals";
-    const properties = dealProperties();
-    const dealStream = hubspotGenerator(endpoint, properties);
+    const filterGroups = [
+      {
+        filters: [
+          {
+            propertyName: "lastmodifieddate",
+            operator: "GT",
+            value: lastSyncMillis,
+          },
+        ],
+      },
+    ];
+    // const properties = dealProperties();
+    const dealStream = hubspotGenerator(endpoint, {
+      properties: dealProperties(),
+      filterGroups,
+    });
 
     for await (const { records, stats } of dealStream) {
       // logger.info(`Processing a batch of ${records.length} Deals...`);
@@ -1514,7 +1533,8 @@ async function syncHubspotDealToServiceM8Job() {
 // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
 async function syncHubspotContactToServiceM8Client() {
   try {
-    const lastSyncTime = "2026-02-14T10:00:00.000Z";
+    const lastSyncISO = getLastSyncTime();
+    const lastSyncMillis = new Date(lastSyncISO).getTime().toString();
     const endpoint = "/crm/v3/objects/contacts";
 
     const filterGroups = [
@@ -1523,18 +1543,16 @@ async function syncHubspotContactToServiceM8Client() {
           {
             propertyName: "lastmodifieddate",
             operator: "GT",
-            value: lastSyncTime,
+            value: lastSyncMillis,
           },
         ],
       },
     ];
 
-    const contactStream = hubspotGenerator("/crm/v3/objects/contacts", {
+    const contactStream = hubspotGenerator(endpoint, {
       properties: contactProperties(),
       filterGroups,
     });
-
-    // const contactStream = hubspotGenerator(endpoint, properties, filterGroups);
 
     for await (const { records, stats } of contactStream) {
       await processBatchContactInServiceM8(records);
@@ -1543,7 +1561,6 @@ async function syncHubspotContactToServiceM8Client() {
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
-      // return;
     }
   } catch (error) {
     logger.error("❌ Error processing Contacts in Batch", {
@@ -1559,7 +1576,11 @@ async function syncHubspotContactToServiceM8Client() {
 // ✅ Fetch company from hubspot and sync to serviceM8 as company(client)
 async function syncHubspotCompanyToServiceM8Client() {
   try {
-    const lastSyncTime = "2026-02-14T10:00:00.000Z";
+    // const lastSyncTime = "2026-02-14T10:00:00.000Z";
+    // lastSyncTime = getLastSyncTime();
+    // 1. Get the last sync time and convert to Epoch Milliseconds for HubSpot Search API
+    const lastSyncISO = getLastSyncTime();
+    const lastSyncMillis = new Date(lastSyncISO).getTime().toString();
     const endpoint = "/crm/v3/objects/companies";
 
     const filterGroups = [
@@ -1568,13 +1589,13 @@ async function syncHubspotCompanyToServiceM8Client() {
           {
             propertyName: "lastmodifieddate",
             operator: "GT",
-            value: lastSyncTime,
+            value: lastSyncMillis,
           },
         ],
       },
     ];
 
-    const contactStream = hubspotGenerator("/crm/v3/objects/contacts", {
+    const contactStream = hubspotGenerator(endpoint, {
       properties: companyProperties(),
       filterGroups,
     });
@@ -1588,7 +1609,6 @@ async function syncHubspotCompanyToServiceM8Client() {
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
-      // return;
     }
   } catch (error) {
     logger.error("❌ Error processing Companies in Batch", {

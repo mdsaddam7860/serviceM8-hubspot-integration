@@ -12,7 +12,8 @@ import {
 } from "../services/serviceM8.service.js";
 logger.info(`Scheduler Initialized fro ServiceM8-Hubspot successfully...`);
 let isRunning = false; // Flag to prevent overlapping executions
-const schedulerFrequesncy = "*/5 * * * * *"; // Every 5 seconds (for testing, adjust as needed for production)
+const schedulerFrequesncy = "0 */30 * * * *"; // Every 30 min (for testing, adjust as needed for production)
+
 cron.schedule(schedulerFrequesncy, async () => {
   // Simultaneously handle both ServiceM8 and Hubspot tasks
   try {
@@ -21,6 +22,13 @@ cron.schedule(schedulerFrequesncy, async () => {
       return;
     }
     logger.info("Polling ServiceM8-Hubspot started...");
+
+    await Promise.allSettled([
+      syncServiceM8ClientToHubSpotAsContact,
+      syncServiceM8ClientToHubSpotAsCompany,
+      syncServiceM8JobToHubSpotAsDeal,
+      syncServiceM8NoteToHubSpotAsActivity,
+    ]);
   } catch (error) {
     logger.error("❌ Critical startup failure:", {
       httpStatus: error?.status,

@@ -111,11 +111,12 @@ function clientMappingHSTOSM8(record = {}) {
 
   return payload;
 }
-function contactMappingHSTOSM8(record = {}) {
+function contactMappingHSTOSM8(record = {}, existingContact = []) {
   const contact = record.properties || {};
+  const props2 = existingContact[0] || {};
   const payload = cleanProps({
-    uuid: contact?.sourceid,
-    name: contact?.firstname + " " + contact?.lastname,
+    uuid: props2?.uuid || contact?.sourceid,
+    name: `${contact?.firstname} ${contact?.lastname}`,
     website: contact?.website,
     address: contact?.address,
     address_street: contact?.address,
