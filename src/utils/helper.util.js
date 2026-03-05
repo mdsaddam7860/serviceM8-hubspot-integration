@@ -2,7 +2,8 @@ import fs from "fs";
 import path from "path";
 function delta() {
   const date = new Date();
-  date.setDate(date.getDate() - 2);
+  // date.setDate(date.getDate() - 2);
+  date.setDate(date.getDate() - 1);
 
   const previousDate = date.toISOString().split("T")[0];
   return previousDate;
