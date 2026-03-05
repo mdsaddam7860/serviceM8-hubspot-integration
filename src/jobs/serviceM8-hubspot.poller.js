@@ -23,12 +23,12 @@ cron.schedule(schedulerFrequesncy, async () => {
     }
     logger.info("Polling ServiceM8-Hubspot started...");
 
-    await Promise.allSettled([
-      syncServiceM8ClientToHubSpotAsContact,
-      syncServiceM8ClientToHubSpotAsCompany,
-      syncServiceM8JobToHubSpotAsDeal,
-      syncServiceM8NoteToHubSpotAsActivity,
-    ]);
+    // await Promise.allSettled([
+    //   syncServiceM8ClientToHubSpotAsContact,
+    //   syncServiceM8ClientToHubSpotAsCompany,
+    //   syncServiceM8JobToHubSpotAsDeal,
+    //   syncServiceM8NoteToHubSpotAsActivity,
+    // ]);
   } catch (error) {
     logger.error("❌ Critical startup failure:", {
       httpStatus: error?.status,

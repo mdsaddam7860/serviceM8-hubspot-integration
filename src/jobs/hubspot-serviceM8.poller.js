@@ -19,11 +19,11 @@ cron.schedule(schedulerFrequesncy, async () => {
   }
   // Simultaneously handle both ServiceM8 and Hubspot tasks
   logger.info("Polling Hubspot-ServiceM8 started...");
-  await Promise.allSettled([
-    syncHubspotDealToServiceM8Job,
-    syncHubspotContactToServiceM8Client,
-    syncHubspotCompanyToServiceM8Client,
-  ]);
+  // await Promise.allSettled([
+  //   syncHubspotDealToServiceM8Job,
+  //   syncHubspotContactToServiceM8Client,
+  //   syncHubspotCompanyToServiceM8Client,
+  // ]);
   try {
   } catch (error) {
     logger.error("❌ Critical startup failure:", {

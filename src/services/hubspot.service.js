@@ -264,6 +264,37 @@ async function findContactInHubspot(contactInfo = {}) {
 //   }
 // }
 
+async function upsertClientContactInHubspot(record = {}, contactInfo = {}) {
+  try {
+    const hs_client = getHubspotClient();
+    const payload = contactMappingSM8ToHS(record, contactInfo);
+
+    // search contact based on sourceid
+
+    const existingContact = await hs_client.contacts.getContactByCustomField(
+      "sourceid",
+      record?.uuid
+    );
+
+    if (existingContact) {
+      return await hs_client.contacts.updateContact(
+        existingContact?.id,
+        payload
+      );
+    } else {
+      // create  contact
+      return await hs_client.contacts.createContact(payload);
+    }
+  } catch (error) {
+    logger.error("❌ HubSpot CleintContact failed to upsert (outer catch):", {
+      status: error?.response?.status,
+      message: error?.response?.data?.message,
+    });
+
+    throw error;
+  }
+}
+
 async function upsertContactInHubspot(record = {}, contactInfo = {}) {
   try {
     const hs_client = getHubspotClient();
@@ -349,67 +380,22 @@ async function upsertContactInHubspot(record = {}, contactInfo = {}) {
     throw error;
   }
 }
-async function upsertCompanyInHubspot(
-  record = {
-    uuid: "0582f095-132d-4086-9aec-2364ff30690b",
-    edit_date: "2025-12-08 13:55:31",
-    name: "Josh Olsen Carpentry",
-    website: "",
-    abn_number: "",
-    address: "60 Woodside Street\nThe Gap QLD 4061 ",
-    address_street: "60 Woodside Street\nThe Gap QLD 4061",
-    address_city: "",
-    address_state: "",
-    address_postcode: "",
-    address_country: "",
-    billing_address: "60 Woodside Street\nThe Gap QLD 4061",
-    active: 1,
-    is_individual: 0,
-    badges: "[]",
-    fax_number: "",
-    tax_rate_uuid: "",
-    billing_attention: "0",
-    payment_terms: "",
-    parent_company_uuid: "",
-  },
-  contactInfo = {}
-) {
+async function upsertCompanyInHubspot(record, contactInfo) {
   try {
     // Find company if exist update else create company
     const hs_client = getHubspotClient();
 
-    // Find contact info from serviceM8
-    // const query = "companycontact.json";
-    // const contactInfo = await searchInServiceM8UsingCustomField(
-    //   query,
-    //   "company_uuid",
-    //   record?.uuid
-    // );
-
-    // logger.info(`Fetched ${query} : ${JSON.stringify(contactInfo, null, 2)}`);
-
-    // if (!contactInfo) {
-    //   logger.warn(`Contact info not found for ${record?.uuid}`);
-    //   return;
-    // }
-
-    const sourceid = record?.uuid;
-    const payload = companyMappingSM8ToHS(record, contactInfo); // Change to company
-    // const payload = {
-    //   firstname: record?.name,
-    //   sourceid: sourceid,
-    // };
+    const payload = companyMappingSM8ToHS(record, contactInfo); //
 
     // search company based on sourceid
-
-    const existingContact = await hs_client.companies.getCompanyByCustomField(
+    const existingCompany = await hs_client.companies.getCompanyByCustomField(
       "sourceid",
-      sourceid
+      record?.uuid
     );
 
-    if (existingContact) {
+    if (existingCompany) {
       return await hs_client.companies.updateCompany(
-        existingContact?.id,
+        existingCompany?.id,
         payload
       );
     } else {
@@ -573,28 +559,50 @@ async function upsertActivityInHubspot(endpoint, record = {}) {
 }
 async function processBatchContactInHubspot(
   records = [
-    {
-      uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
-      edit_date: "2021-08-17 13:02:29",
-      name: "Teresa Stanton",
-      website: "",
-      abn_number: "",
-      address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-      address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
-      address_city: "",
-      address_state: "",
-      address_postcode: "",
-      address_country: "",
-      billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-      active: 1,
-      is_individual: 1,
-      badges: "",
-      fax_number: "",
-      tax_rate_uuid: "",
-      billing_attention: "0",
-      payment_terms: "",
-      parent_company_uuid: "",
-    },
+    // {
+    //   uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
+    //   edit_date: "2021-08-17 13:02:29",
+    //   name: "Teresa Stanton",
+    //   website: "",
+    //   abn_number: "",
+    //   address: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    //   address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    //   address_city: "",
+    //   address_state: "",
+    //   address_postcode: "",
+    //   address_country: "",
+    //   billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
+    //   active: 1,
+    //   is_individual: 1,
+    //   badges: "",
+    //   fax_number: "",
+    //   tax_rate_uuid: "",
+    //   billing_attention: "0",
+    //   payment_terms: "",
+    //   parent_company_uuid: "",
+    // },
+    // {
+    //   uuid: "0041ab17-6f2d-41d6-b74e-238780c9733b",
+    //   edit_date: "2025-11-27 09:39:23",
+    //   name: "Arnold Broese",
+    //   website: "",
+    //   abn_number: "",
+    //   address: "20 Mount Coolum Close\nMaroochy River QLD 4561",
+    //   address_street: "20 Mount Coolum Close\nMaroochy River QLD 4561",
+    //   address_city: "",
+    //   address_state: "",
+    //   address_postcode: "",
+    //   address_country: "",
+    //   billing_address: "20 Mount Coolum Close\nMaroochy River QLD 4561",
+    //   active: 1,
+    //   is_individual: 1,
+    //   badges: '["32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
+    //   fax_number: "",
+    //   tax_rate_uuid: "",
+    //   billing_attention: "0",
+    //   payment_terms: "",
+    //   parent_company_uuid: "",
+    // },
   ]
 ) {
   for (const record of records) {
@@ -602,49 +610,50 @@ async function processBatchContactInHubspot(
       logger.info(`✅ Processing record  ${JSON.stringify(record, null, 2)}`);
 
       // Find contact if exist update else create contact, first search based on phone number then email
-      const hs_client = getHubspotClient();
 
-      // Find contact info from serviceM8
-      const query = "companycontact.json";
-      const contacts = await searchInServiceM8UsingCustomField(
-        query,
-        "company_uuid",
-        record?.uuid
+      const [upsertResult, contactInfoResult] = await Promise.allSettled([
+        upsertClientContactInHubspot(record),
+        searchInServiceM8UsingCustomField(
+          "companycontact.json",
+          "company_uuid",
+          record?.uuid
+        ),
+      ]);
+
+      if (upsertResult.status === "rejected") {
+        logger.info(`❌ Error processing contact: ${upsertResult.reason}`);
+        continue;
+      }
+
+      logger.info(
+        `✅ Upserted Contact: ${JSON.stringify(upsertResult.value, null, 2)}`
       );
+
+      const upsertContact = upsertResult.value;
+      const contacts =
+        contactInfoResult.status === "fulfilled" ? contactInfoResult.value : [];
 
       if (!contacts) {
         logger.warn(`Contact info not found for ${record?.uuid}`);
         return;
       }
 
-      for (const [inner_index, contact] of contacts.entries()) {
-        try {
-          logger.info(
-            `Processing  ${inner_index} : ${JSON.stringify(contact)}`
-          );
-          // Upsert Contact in hubspot
-          const upsertContact = await upsertContactInHubspot(record, contact);
-          logger.info(
-            `✅ Upserted contact  ${JSON.stringify(upsertContact, null, 2)}`
-          );
-        } catch (error) {
-          logger.error("❌ Error processing contact:", {
-            status: error?.status,
-            response: error.response?.data,
-            method: error?.method,
-            url: error?.config?.url,
-            headers: error?.config?.headers,
-            stack: error,
-          });
-        }
+      // upsert companycontact and associate to contact
+
+      if (contacts.length > 0) {
+        await processAssociatedCompanyContactsInHubspotWithContact(
+          contacts,
+          upsertContact?.id
+        );
       }
     } catch (error) {
-      logger.error("❌ Error processing contact:", {
+      logger.error(`❌ Error processing contact ${record?.uuid}:`, {
         status: error?.status,
         response: error.response?.data,
         method: error?.method,
         url: error?.config?.url,
         headers: error?.config?.headers,
+        stack: error.stack,
       });
     }
   }
@@ -677,7 +686,7 @@ async function processBatchCompanyInHubspot(
 ) {
   for (const record of records) {
     try {
-      logger.info(`✅ Processing Company  ${JSON.stringify(record, null, 2)}`);
+      logger.info(`✅ Processing Company  ${JSON.stringify(record)}`);
 
       // fetch upsertcompany and fetch contact parallelly from serviceM8
 
@@ -699,9 +708,7 @@ async function processBatchCompanyInHubspot(
       }
 
       const upsertCompany = upsertCompanyResult.value;
-      logger.info(
-        `✅ Upserted Company  ${JSON.stringify(upsertCompany, null, 2)}`
-      );
+      logger.info(`✅ Upserted Company  ${JSON.stringify(upsertCompany)}`);
 
       const contacts =
         contactResult.status === "fulfilled" ? contactResult.value : [];
@@ -718,96 +725,6 @@ async function processBatchCompanyInHubspot(
           upsertCompany?.id
         );
       }
-
-      // const hs_client = getHubspotClient();
-
-      // Associate with contact
-      // for (const [inner_index, contactInfo] of contacts.entries()) {
-      //   try {
-      //     // Find contact asociate with company
-      //     if (!contactInfo.phone && !contactInfo.email) {
-      //       logger.warn(
-      //         `Phone and email is empty for ${
-      //           contactInfo.uuid
-      //         } : ${JSON.stringify(contactInfo)}`
-      //       );
-      //       continue;
-      //     }
-      //     logger.info(
-      //       `✅ Processing contact at index:${inner_index + 1} ${JSON.stringify(
-      //         contactInfo
-      //       )}`
-      //     );
-
-      //     let existingContact = null;
-
-      //     // if (contactInfo.phone) {
-      //     //   existingContact = await hs_client.contacts.getContactByCustomField(
-      //     //     "phone",
-      //     //     contactInfo.phone
-      //     //   );
-      //     //   logger.info(
-      //     //     `existingContact found by phone: ${JSON.stringify(
-      //     //       existingContact,
-      //     //       null,
-      //     //       2
-      //     //     )}`
-      //     //   );
-      //     // }
-
-      //     // // if found assocaite with hubspot deal
-
-      //     // if (!existingContact && contactInfo.email) {
-      //     //   existingContact = await hs_client.contacts.getContactByCustomField(
-      //     //     "email",
-      //     //     contactInfo.email
-      //     //   );
-      //     //   logger.info(
-      //     //     `existingContact found by email: ${JSON.stringify(
-      //     //       existingContact,
-      //     //       null,
-      //     //       2
-      //     //     )}`
-      //     //   );
-      //     // }
-
-      //     existingContact = await upsertContactInHubspot({}, contactInfo);
-
-      //     logger.info(
-      //       `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
-      //     );
-      //     if (existingContact?.id && upsertCompany?.id) {
-      //       const associate = await hs_client.associations.associate(
-      //         "contact",
-      //         existingContact?.id,
-      //         "company",
-      //         upsertCompany?.id,
-      //         "279",
-      //         "HUBSPOT_DEFINED"
-      //       );
-
-      //       logger.info(
-      //         `✅ Associate contact Id : ${
-      //           existingContact?.id
-      //         } with Company Id ${upsertCompany?.id}: ${JSON.stringify(
-      //           associate,
-      //           null,
-      //           2
-      //         )}`
-      //       );
-      //     }
-      //     // return; // TODO Remove after testing
-      //   } catch (error) {
-      //     logger.error("❌ Error processing contact:", {
-      //       status: error?.status,
-      //       response: error.response?.data,
-      //       method: error?.method,
-      //       url: error?.config?.url,
-      //       headers: error?.config?.headers,
-      //       stack: error,
-      //     });
-      //   }
-      // }
     } catch (error) {
       logger.error("❌ Error processing Company:", {
         status: error?.status,
@@ -817,7 +734,6 @@ async function processBatchCompanyInHubspot(
         headers: error?.config?.headers,
         stack: error.stack,
       });
-      // console.error(error);
     }
   }
 }
@@ -838,18 +754,12 @@ async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
         }
         logger.info(`✅ Processing contact ${JSON.stringify(contactInfo)}`);
 
-        let existingContact = null;
-
-        // if (contactInfo.phone) {
-        //   existingContact = await hs_client.contacts.getContactByCustomField(
-        //     "phone",
-
-        existingContact = await upsertContactInHubspot({}, contactInfo);
+        const existingContact = await upsertContactInHubspot({}, contactInfo);
 
         logger.info(
           `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
         );
-        if (existingContact?.id && companyId) {
+        if (existingContact && existingContact?.id && companyId) {
           const associate = await hs_client.associations.associate(
             "contact",
             existingContact?.id,
@@ -863,6 +773,78 @@ async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
             `✅ Associate contact Id : ${
               existingContact?.id
             } with Company Id ${companyId}: ${JSON.stringify(
+              associate,
+              null,
+              2
+            )}`
+          );
+        }
+      } catch (error) {
+        logger.error("❌ Error processing contact:", {
+          status: error?.status,
+          response: error.response?.data,
+          method: error?.method,
+          url: error?.config?.url,
+          headers: error?.config?.headers,
+          stack: error,
+        });
+      }
+    })
+  );
+}
+/**
+ * Process associated company contacts in Hubspot with a contact.
+ * It takes a list of contacts and a contactId and upserts the contact in Hubspot.
+ * If the contact is not found, it will upsert the contact in Hubspot.
+ * It will then associate the contact with the contactId in Hubspot.
+ * @param {Array} contacts - List of contacts
+ * @param {String} contactId - ContactId to associate with
+ * @returns {Promise} - Promise containing the result of the operation
+ */
+async function processAssociatedCompanyContactsInHubspotWithContact(
+  contacts,
+  contactId
+) {
+  const hs_client = getHubspotClient();
+  return Promise.allSettled(
+    contacts.map(async (contactInfo) => {
+      try {
+        // Find contact asociate with contact
+        if (!contactInfo.mobile && !contactInfo.email) {
+          logger.warn(
+            `Phone and email is empty for ${
+              contactInfo.uuid
+            } : ${JSON.stringify(contactInfo)}`
+          );
+          return;
+        }
+        logger.info(`✅ Processing contact ${JSON.stringify(contactInfo)}`);
+
+        let existingContact = null;
+
+        // if (contactInfo.phone) {
+        //   existingContact = await hs_client.contacts.getContactByCustomField(
+        //     "phone",
+
+        existingContact = await upsertContactInHubspot({}, contactInfo);
+
+        logger.info(
+          `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
+        );
+        if (existingContact?.id && contactId) {
+          const associate = await hs_client.associations.associate(
+            "contact",
+            existingContact?.id,
+            "contact",
+            contactId,
+            "449",
+            "HUBSPOT_DEFINED"
+          );
+
+          logger.info(
+            `✅ Associate contact Id : ${
+              existingContact?.id
+            } with contact Id ${contactId}: ${JSON.stringify(
               associate,
               null,
               2
@@ -1091,65 +1073,65 @@ async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
 
 async function processBatchDealInHubspot(
   records = [
-    {
-      uuid: "05a10154-0123-45bc-804a-2396df4e950d",
-      active: 1,
-      date: "2025-12-11 00:00:00",
-      job_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
-      billing_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
-      status: "Completed",
-      quote_date: "0000-00-00 00:00:00",
-      work_order_date: "2025-12-11 15:37:49",
-      work_done_description: "",
-      lng: 153.1337208,
-      lat: -27.461306,
-      generated_job_id: "39399",
-      completion_date: "2025-12-17 12:34:29",
-      completion_actioned_by_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
-      unsuccessful_date: "0000-00-00 00:00:00",
-      payment_date: "2025-12-18 00:00:00",
-      payment_method: "Xero",
-      payment_amount: 570,
-      payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-      edit_date: "2025-12-19 05:45:46",
-      geo_is_valid: 1,
-      payment_note: "",
-      ready_to_invoice: "1",
-      ready_to_invoice_stamp: "2025-12-18 05:57:35",
-      company_uuid: "6a0dadab-f917-4a91-8038-2396dee63ebb",
-      geo_country: "Australia",
-      geo_postcode: "4174",
-      geo_state: "QLD",
-      geo_city: "Hemmant",
-      geo_street: "Hemmant Tingalpa Road",
-      geo_number: "412",
-      payment_processed: 1,
-      payment_processed_stamp: "2025-12-18 05:59:03",
-      payment_received: 1,
-      payment_received_stamp: "2025-12-18 00:00:00",
-      total_invoice_amount: "570.0000",
-      job_is_scheduled_until_stamp: "2025-12-17 08:00:00",
-      category_uuid: "f4460be7-395d-42ca-a465-22f384e3a8fb",
-      queue_uuid: "",
-      queue_expiry_date: "0000-00-00 00:00:00",
-      badges: "",
-      invoice_sent: true,
-      purchase_order_number: "",
-      invoice_sent_stamp: "2025-12-17 12:33:30",
-      queue_assigned_staff_uuid: "",
-      quote_sent_stamp: "0000-00-00 00:00:00",
-      quote_sent: false,
-      customfield_application_number: "",
-      customfield_lot: "0",
-      customfield_plan: "",
-      active_network_request_uuid: "",
-      customfield_lead_source: "",
-      customfield_xero_tracking_cat_1: "",
-      customfield_xero_tracking_cat_2: "",
-      related_knowledge_articles: false,
-      job_description: "17 DEC - HARMOR TO PUMP OUT SEPTIC AND GREASE TRAP",
-      created_by_staff_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
-    },
+    // {
+    //   uuid: "05a10154-0123-45bc-804a-2396df4e950d",
+    //   active: 1,
+    //   date: "2025-12-11 00:00:00",
+    //   job_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
+    //   billing_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
+    //   status: "Completed",
+    //   quote_date: "0000-00-00 00:00:00",
+    //   work_order_date: "2025-12-11 15:37:49",
+    //   work_done_description: "",
+    //   lng: 153.1337208,
+    //   lat: -27.461306,
+    //   generated_job_id: "39399",
+    //   completion_date: "2025-12-17 12:34:29",
+    //   completion_actioned_by_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
+    //   unsuccessful_date: "0000-00-00 00:00:00",
+    //   payment_date: "2025-12-18 00:00:00",
+    //   payment_method: "Xero",
+    //   payment_amount: 570,
+    //   payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
+    //   edit_date: "2025-12-19 05:45:46",
+    //   geo_is_valid: 1,
+    //   payment_note: "",
+    //   ready_to_invoice: "1",
+    //   ready_to_invoice_stamp: "2025-12-18 05:57:35",
+    //   company_uuid: "6a0dadab-f917-4a91-8038-2396dee63ebb",
+    //   geo_country: "Australia",
+    //   geo_postcode: "4174",
+    //   geo_state: "QLD",
+    //   geo_city: "Hemmant",
+    //   geo_street: "Hemmant Tingalpa Road",
+    //   geo_number: "412",
+    //   payment_processed: 1,
+    //   payment_processed_stamp: "2025-12-18 05:59:03",
+    //   payment_received: 1,
+    //   payment_received_stamp: "2025-12-18 00:00:00",
+    //   total_invoice_amount: "570.0000",
+    //   job_is_scheduled_until_stamp: "2025-12-17 08:00:00",
+    //   category_uuid: "f4460be7-395d-42ca-a465-22f384e3a8fb",
+    //   queue_uuid: "",
+    //   queue_expiry_date: "0000-00-00 00:00:00",
+    //   badges: "",
+    //   invoice_sent: true,
+    //   purchase_order_number: "",
+    //   invoice_sent_stamp: "2025-12-17 12:33:30",
+    //   queue_assigned_staff_uuid: "",
+    //   quote_sent_stamp: "0000-00-00 00:00:00",
+    //   quote_sent: false,
+    //   customfield_application_number: "",
+    //   customfield_lot: "0",
+    //   customfield_plan: "",
+    //   active_network_request_uuid: "",
+    //   customfield_lead_source: "",
+    //   customfield_xero_tracking_cat_1: "",
+    //   customfield_xero_tracking_cat_2: "",
+    //   related_knowledge_articles: false,
+    //   job_description: "17 DEC - HARMOR TO PUMP OUT SEPTIC AND GREASE TRAP",
+    //   created_by_staff_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
+    // },
   ]
 ) {
   // Start the timer for the entire batch execution
@@ -1172,7 +1154,7 @@ async function processBatchDealInHubspot(
         )}`
       );
 
-      // 1. Fetch Deal and Contacts in Parallel
+      // 1. upsert Deal and fetch Contacts in Parallel
       const [upsertResult, contactsResult] = await Promise.allSettled([
         upsertDealInHubspot(record),
         searchInServiceM8UsingCustomField(
@@ -1233,18 +1215,30 @@ async function processBatchDealInHubspot(
 }
 async function processBatchActivityInHubspot(
   records = [
-    {
-      uuid: "0049830c-60a4-426b-a91c-23b7001c8b0a",
-      edit_by_staff_uuid: "4981eca6-f6d2-43aa-a1e6-20bb3dce008b",
-      create_date: "2026-01-13 14:10:21",
-      edit_date: "2026-01-13 14:10:21",
-      active: 1,
-      note: "System alarming on arrival, pump has failed. Replaced d25 with reefe 250.",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "company",
-      related_object_uuid: "72030075-36bd-4d42-924c-23b6cc64b8ad",
-    },
+    // {
+    //   uuid: "0049830c-60a4-426b-a91c-23b7001c8b0a",
+    //   edit_by_staff_uuid: "4981eca6-f6d2-43aa-a1e6-20bb3dce008b",
+    //   create_date: "2026-01-13 14:10:21",
+    //   edit_date: "2026-01-13 14:10:21",
+    //   active: 1,
+    //   note: "System alarming on arrival, pump has failed. Replaced d25 with reefe 250.",
+    //   action_required: "0",
+    //   action_completed_by_staff_uuid: "",
+    //   related_object: "company",
+    //   related_object_uuid: "72030075-36bd-4d42-924c-23b6cc64b8ad",
+    // },
+    // {
+    //   uuid: "001794d9-f1b3-4fcd-b26f-23909508d0db",
+    //   edit_by_staff_uuid: "3851241f-f215-476b-9afd-22229ce8323b",
+    //   create_date: "2025-12-06 08:22:10",
+    //   edit_date: "2025-12-06 08:22:10",
+    //   active: 1,
+    //   note: "MUST USE PERSONAL GATE HALFWAY DOWN THE FENCE LINE.  IF NEED BE RING GARETH FOR MORE DIRECT INSTRUCTIONS THANKS.",
+    //   action_required: "0",
+    //   action_completed_by_staff_uuid: "",
+    //   related_object: "company",
+    //   related_object_uuid: "7616c1f1-642e-4d79-8cdd-21d416d3704b",
+    // },
   ]
 ) {
   const hs_client = getHubspotClient();
@@ -1263,46 +1257,139 @@ async function processBatchActivityInHubspot(
 
       if (relatedObject == "company") {
         let contactId = null;
-        const existingContact = await searchInHubspot(
+
+        // Search in hubspot contact/company
+        let existingInHubspot = null;
+        existingInHubspot = await searchInHubspot(
           "contacts",
           "sourceid",
           record.related_object_uuid
         );
-        contactId = existingContact[0]?.id;
 
-        // logger.info(
-        //   `✅ Existing Contact  ${JSON.stringify(existingContact, null, 2)}`
-        // );
+        // if contact already exists in hubspot then use it
+        if (existingInHubspot?.length > 0) {
+          contactId = existingInHubspot[0]?.id;
 
-        if (!existingContact || !existingContact?.length > 0) {
+          if (contactId && upsertNote?.id) {
+            // Associate activity with contact
+            const associate = await hs_client.associations.associate(
+              "contacts",
+              contactId,
+              "notes",
+              upsertNote?.id,
+              "201",
+              "HUBSPOT_DEFINED"
+            );
+            logger.info(
+              `✅ Associate Note ${
+                upsertNote?.id
+              } with Contact ${contactId}  ${JSON.stringify(
+                associate,
+                null,
+                2
+              )}`
+            );
+          }
+        }
+        if (!existingInHubspot) {
+          existingInHubspot = await searchInHubspot(
+            "companies",
+            "sourceid",
+            record.related_object_uuid
+          );
+          if (existingInHubspot?.length > 0) {
+            contactId = existingInHubspot[0]?.id;
+            if (contactId && upsertNote?.id) {
+              // Associate activity with contact
+              const associate = await hs_client.associations.associate(
+                "companies",
+                contactId,
+                "notes",
+                upsertNote?.id,
+                "189",
+                "HUBSPOT_DEFINED"
+              );
+              logger.info(
+                `✅ Associate Note ${
+                  upsertNote?.id
+                } with Company ${contactId}  ${JSON.stringify(
+                  associate,
+                  null,
+                  2
+                )}`
+              );
+            }
+          }
+        }
+
+        if (!existingInHubspot) {
           // fetch client
           const company = await searchInServiceM8(
             "company.json",
             record.related_object_uuid
           );
-          // upsert contact
-          const upsert = await upsertContactInHubspot(company);
-          logger.info(
-            `✅ Upserted Contact  ${JSON.stringify(upsert, null, 2)}`
-          );
-          contactId = upsert?.id;
-        }
 
-        if (contactId && upsertNote?.id) {
-          // Associate activity with contact
-          const associate = await hs_client.associations.associate(
-            "contacts",
-            contactId,
-            "notes",
-            upsertNote?.id,
-            "201",
-            "HUBSPOT_DEFINED"
-          );
-          logger.info(
-            `✅ Associate Note ${
-              upsertNote?.id
-            } with Contact ${contactId}  ${JSON.stringify(associate, null, 2)}`
-          );
+          //if is_individual is 0 then it is company else it is contact
+          // upsert contact
+          let upsert = null;
+
+          if (company.is_individual === 0) {
+            upsert = await upsertCompanyInHubspot(company);
+            logger.info(
+              `✅ Upserted Company  ${JSON.stringify(upsert, null, 2)}`
+            );
+            contactId = upsert?.id;
+
+            contactId = upsert?.id;
+
+            if (contactId && upsertNote?.id) {
+              // Associate activity with contact
+              const associate = await hs_client.associations.associate(
+                "companies",
+                contactId,
+                "notes",
+                upsertNote?.id,
+                "189",
+                "HUBSPOT_DEFINED"
+              );
+              logger.info(
+                `✅ Associate Note ${
+                  upsertNote?.id
+                } with Company ${contactId}  ${JSON.stringify(
+                  associate,
+                  null,
+                  2
+                )}`
+              );
+            }
+          } else if (company.is_individual === 1) {
+            upsert = await upsertClientContactInHubspot(company);
+            logger.info(
+              `✅ Upserted Contact  ${JSON.stringify(upsert, null, 2)}`
+            );
+            contactId = upsert?.id;
+
+            if (contactId && upsertNote?.id) {
+              // Associate activity with contact
+              const associate = await hs_client.associations.associate(
+                "contacts",
+                contactId,
+                "notes",
+                upsertNote?.id,
+                "201",
+                "HUBSPOT_DEFINED"
+              );
+              logger.info(
+                `✅ Associate Note ${
+                  upsertNote?.id
+                } with Contact ${contactId}  ${JSON.stringify(
+                  associate,
+                  null,
+                  2
+                )}`
+              );
+            }
+          }
         }
       }
       if (relatedObject === "job") {
@@ -1481,7 +1568,7 @@ async function searchInHubspot(
       filterGroups,
       params: { limit: 1, after: "" },
     });
-    const records = response.data?.results || [];
+    const records = response.data?.results || null;
     // logger.info(`Search Result: ${JSON.stringify(records, null, 2)}`);
     return records;
   } catch (error) {
@@ -1515,22 +1602,24 @@ async function syncHubspotDealToServiceM8Job() {
     });
 
     for await (const { records, stats } of dealStream) {
-      // logger.info(`Processing a batch of ${records.length} Deals...`);
-      // logger.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
-      logger.info(
-        `Processing a batch of ${JSON.stringify(records[0], null, 2)} Deals...`
-      );
-
       await processBatchDealInServiceM8(records);
       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
-      return;
     }
   } catch (error) {
-    logger.error("❌ Error processing Deal in Batch", error);
+    logger.error("❌ Error processing Deal in Batch", {
+      httpStatus: error?.status,
+      message: error.message,
+      data: error.response?.data,
+      url: error.config?.url,
+      headers: error.config?.headers,
+      method: error.config?.method,
+      config: error.config,
+      stack: error,
+    });
   }
 }
 // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
