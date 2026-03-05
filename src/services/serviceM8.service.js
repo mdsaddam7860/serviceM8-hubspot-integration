@@ -13,6 +13,7 @@ import {
   contactProperties,
   jobContactMappingHSTOSM8,
   dealProperties,
+  getLastSyncTime,
 } from "../index.js";
 // -----------------------------------Hubspot Service -----------------------------------------
 import {
@@ -251,10 +252,13 @@ async function syncServiceM8ClientToHubSpotAsContact() {
   try {
     const endpoint = "company.json";
 
-    const previousDate = delta();
-    logger.info(`Getting records after: ${previousDate}`);
+    const lastSyncISO = getLastSyncTime();
+
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
     const companyStream = serviceM8Generator(
-      `${endpoint}?$filter=edit_date gt ${previousDate} and is_individual eq 1`
+      `${endpoint}?$filter=edit_date gt '${formattedDate}' and is_individual eq 1`
     );
 
     for await (const { records, stats } of companyStream) {
@@ -282,17 +286,20 @@ async function syncServiceM8ClientToHubSpotAsContact() {
 // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
 async function syncServiceM8ClientToHubSpotAsCompany() {
   try {
-    const previousDate = delta();
-    logger.info(`Getting records after: ${previousDate}`);
+    const lastSyncISO = getLastSyncTime();
+
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
     const companyStream = serviceM8Generator(
-      `${clientEndpoint}?$filter=edit_date gt ${previousDate} and is_individual eq 0`
+      `${clientEndpoint}?$filter=edit_date gt '${formattedDate}' and is_individual eq 0`
     );
 
     for await (const { records, stats } of companyStream) {
       // Process Company in batch here
       await processBatchCompanyInHubspot(records);
 
-      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+      logger.info(`[ServiceM8 Progress] ${clientEndpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
@@ -314,10 +321,12 @@ async function syncServiceM8ClientToHubSpotAsCompany() {
 // ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
 async function syncServiceM8JobToHubSpotAsDeal() {
   try {
-    const previousDate = delta();
-    logger.info(`Getting records : ${previousDate}`);
+    const lastSyncISO = getLastSyncTime();
 
-    const endpoint = `job.json?$filter=date eq ${previousDate}`;
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
+    const endpoint = `job.json?$filter=edit_date eq ${formattedDate}`;
     // const endpoint = `job.json`;
 
     const jobStream = serviceM8Generator(endpoint);
@@ -348,10 +357,12 @@ async function syncServiceM8JobToHubSpotAsDeal() {
 // ✅ Fetch Note from serviceM8 and sync to Hubspot as Activity
 async function syncServiceM8NoteToHubSpotAsActivity() {
   try {
-    const previousDay = delta();
-    logger.info(`Getting records after : ${previousDay}`);
+    const lastSyncISO = getLastSyncTime();
 
-    const endpoint = `note.json?$filter=edit_date gt ${previousDay}`;
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
+    const endpoint = `note.json?$filter=edit_date gt '${formattedDate}'`;
 
     const jobStream = serviceM8Generator(endpoint);
 
@@ -1175,13 +1186,16 @@ async function processBatchCompanyInServiceM8(
       );
     }
   } catch (error) {
-    logger.error(`❌ Error processing Compnay in Batch`, {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
-    });
+    logger.error(
+      `❌ Error processing Compnay in processBatchCompanyInServiceM8`,
+      {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+      }
+    );
   }
 }
 

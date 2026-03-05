@@ -92,7 +92,8 @@ async function findContactInHubspot(contactInfo = {}) {
 
     // 1. Remove all spaces and non-digit characters
     // let cleaned = rawPhone;
-    let cleaned = rawPhone.replace(/\D/g, "");
+    let cleaned = null;
+    cleaned = rawPhone.replace(/\D/g, "");
 
     // 2. Replace leading '0' with '+61'
     if (cleaned.startsWith("0")) {
@@ -102,31 +103,35 @@ async function findContactInHubspot(contactInfo = {}) {
       cleaned = "+61" + cleaned;
     }
 
-    const filterGroups = [
-      {
-        filters: [
-          {
+    const filters = [
+      // Only include mobilephone if 'cleaned' has a value
+      cleaned
+        ? {
             propertyName: "mobilephone",
             operator: "EQ",
             value: cleaned,
-          },
-        ],
-      },
-      // {
-      //   filters: [
-      //     {
-      //       propertyName: "phone",
-      //       operator: "EQ",
-      //       value: cleaned,
-      //     },
-      //   ],
-      // },
-    ];
+          }
+        : null,
+
+      // Only include email if it exists
+      contactInfo?.email
+        ? {
+            propertyName: "email",
+            operator: "EQ",
+            value: contactInfo.email,
+          }
+        : null,
+    ].filter(Boolean); // This removes all the 'null' entries
+
+    // Map the valid filters into their own filterGroups (OR logic)
+    const filterGroups = filters.map((f) => ({ filters: [f] }));
 
     let existingContact = null;
 
-    // Search Contact by phone number
-    existingContact = await hs_client.contacts.searchContacts(filterGroups);
+    if (cleaned) {
+      // Search Contact by phone number
+      existingContact = await hs_client.contacts.searchContacts(filterGroups);
+    }
 
     // Return the contact if its length is 1
     if (existingContact?.results?.length >= 1) {
@@ -137,35 +142,6 @@ async function findContactInHubspot(contactInfo = {}) {
       );
       return existingContact.results[0];
     }
-
-    // Search by phone and email if it has more than 1 result
-    if (existingContact.results.length > 1) {
-      logger.info(
-        `exisingContact found by phone is more than one switching to search by phone and email: ${existingContact?.results?.length}`
-      );
-      // search based on email and phone
-      const filterGroups = [
-        {
-          // Search Email and phone
-          filters: [
-            { propertyName: "email", operator: "EQ", value: contactInfo.email },
-            {
-              propertyName: "phone",
-              operator: "EQ",
-              value: cleaned,
-            },
-          ],
-        },
-      ];
-      existingContact = await hs_client.contacts.searchContacts(filterGroups);
-
-      if (existingContact?.results?.length >= 1) {
-        return existingContact.results[0];
-      }
-    }
-
-    // logger.info(`existingContact length: ${existingContact?.results?.length}`);
-    // return;
 
     // Search by email if it has 0 result
     if (existingContact?.results?.length === 0) {
@@ -295,6 +271,97 @@ async function upsertClientContactInHubspot(record = {}, contactInfo = {}) {
   }
 }
 
+// async function upsertContactInHubspot(record = {}, contactInfo = {}) {
+//   try {
+//     const hs_client = getHubspotClient();
+//     const payload = contactMappingSM8ToHS(record, contactInfo);
+
+//     let existingContact = await findContactInHubspot(contactInfo);
+
+//     const isEmailConflict = (error) => {
+//       const message = error?.response?.data?.message || "";
+//       return (
+//         error?.response?.data?.category === "VALIDATION_ERROR" &&
+//         message.includes("propertyName=email")
+//       );
+//     };
+
+//     const removeEmailFromPayload = (originalPayload) => {
+//       const cloned = {
+//         ...originalPayload,
+//         // properties: { ...originalPayload.properties },
+//       };
+//       delete cloned.email;
+//       return cloned;
+//     };
+
+//     if (existingContact) {
+//       try {
+//         return await hs_client.contacts.updateContact(
+//           existingContact.id,
+//           payload
+//         );
+//       } catch (error) {
+//         logger.error("❌ HubSpot Contact update failed:", {
+//           status: error?.response?.status,
+//           message: error?.response?.data?.message,
+//           category: error?.response?.data?.category,
+//         });
+
+//         // 🔁 Retry without email if duplicate email conflict
+//         if (isEmailConflict(error)) {
+//           logger.warn(
+//             "⚠️ Email conflict detected. Retrying update without email..."
+//           );
+
+//           const retryPayload = removeEmailFromPayload(payload);
+
+//           return await hs_client.contacts.updateContact(
+//             existingContact.id,
+//             retryPayload
+//           );
+//         }
+
+//         throw error; // don't swallow unknown errors
+//       }
+//     } else {
+//       try {
+//         return await hs_client.contacts.createContact(payload);
+//       } catch (error) {
+//         logger.error("❌ HubSpot Contact create failed:", {
+//           status: error?.response?.status,
+//           message: error?.response?.data?.message,
+//           category: error?.response?.data?.category,
+//         });
+
+//         if (isEmailConflict(error)) {
+//           logger.warn(
+//             "⚠️ Email conflict detected. Retrying create without email..."
+//           );
+
+//           const retryPayload = removeEmailFromPayload(payload);
+
+//           return await hs_client.contacts.createContact(retryPayload);
+//         }
+
+//         throw error;
+//       }
+//     }
+//   } catch (error) {
+//     logger.error("❌ HubSpot Contact failed to upsert (outer catch):", {
+//       httpStatus: error?.status,
+//       response: error?.response?.data,
+//       method: error?.method,
+//       url: error?.config?.url,
+//       headers: error?.config?.headers,
+//       message: error?.message,
+//       stack: error?.stack,
+//     });
+
+//     throw error;
+//   }
+// }
+
 async function upsertContactInHubspot(record = {}, contactInfo = {}) {
   try {
     const hs_client = getHubspotClient();
@@ -302,79 +369,23 @@ async function upsertContactInHubspot(record = {}, contactInfo = {}) {
 
     let existingContact = await findContactInHubspot(contactInfo);
 
-    const isEmailConflict = (error) => {
-      const message = error?.response?.data?.message || "";
-      return (
-        error?.response?.data?.category === "VALIDATION_ERROR" &&
-        message.includes("propertyName=email")
-      );
-    };
-
-    const removeEmailFromPayload = (originalPayload) => {
-      const cloned = {
-        ...originalPayload,
-        // properties: { ...originalPayload.properties },
-      };
-      delete cloned.email;
-      return cloned;
-    };
-
     if (existingContact) {
-      try {
-        return await hs_client.contacts.updateContact(
-          existingContact.id,
-          payload
-        );
-      } catch (error) {
-        logger.error("❌ HubSpot Contact update failed:", {
-          status: error?.response?.status,
-          message: error?.response?.data?.message,
-          category: error?.response?.data?.category,
-        });
-
-        // 🔁 Retry without email if duplicate email conflict
-        if (isEmailConflict(error)) {
-          logger.warn(
-            "⚠️ Email conflict detected. Retrying update without email..."
-          );
-
-          const retryPayload = removeEmailFromPayload(payload);
-
-          return await hs_client.contacts.updateContact(
-            existingContact.id,
-            retryPayload
-          );
-        }
-
-        throw error; // don't swallow unknown errors
-      }
+      return await hs_client.contacts.updateContact(
+        existingContact.id,
+        payload
+      );
     } else {
-      try {
-        return await hs_client.contacts.createContact(payload);
-      } catch (error) {
-        logger.error("❌ HubSpot Contact create failed:", {
-          status: error?.response?.status,
-          message: error?.response?.data?.message,
-          category: error?.response?.data?.category,
-        });
-
-        if (isEmailConflict(error)) {
-          logger.warn(
-            "⚠️ Email conflict detected. Retrying create without email..."
-          );
-
-          const retryPayload = removeEmailFromPayload(payload);
-
-          return await hs_client.contacts.createContact(retryPayload);
-        }
-
-        throw error;
-      }
+      return await hs_client.contacts.createContact(payload);
     }
   } catch (error) {
     logger.error("❌ HubSpot Contact failed to upsert (outer catch):", {
-      status: error?.response?.status,
-      message: error?.response?.data?.message,
+      httpStatus: error?.status,
+      response: error?.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error?.message,
+      stack: error?.stack,
     });
 
     throw error;
@@ -1553,7 +1564,15 @@ async function searchInHubspot(
     // logger.info(`Search Result: ${JSON.stringify(records, null, 2)}`);
     return records;
   } catch (error) {
-    logger.error("❌ Error processing Search in Hubspot", error);
+    logger.error("❌ Error processing Search in Hubspot", {
+      httpStatus: error?.status,
+      response: error?.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error?.message,
+      stack: error?.stack,
+    });
     throw error;
   }
 }
@@ -1569,7 +1588,7 @@ async function syncHubspotDealToServiceM8Job() {
       {
         filters: [
           {
-            propertyName: "lastmodifieddate",
+            propertyName: "hs_lastmodifieddate",
             operator: "GT",
             value: lastSyncMillis,
           },
@@ -1577,6 +1596,9 @@ async function syncHubspotDealToServiceM8Job() {
       },
     ];
     // const properties = dealProperties();
+    logger.info(
+      `[HubSpot] Last Sync Time: ${lastSyncISO}, Epoch: ${lastSyncMillis} and endPoint ${endpoint}`
+    );
     const dealStream = hubspotGenerator(endpoint, {
       properties: dealProperties(),
       filterGroups,
@@ -1621,6 +1643,9 @@ async function syncHubspotContactToServiceM8Client() {
         ],
       },
     ];
+    logger.info(
+      `[HubSpot] Last Sync Time: ${lastSyncISO}, Epoch: ${lastSyncMillis} and endPoint ${endpoint}`
+    );
 
     const contactStream = hubspotGenerator(endpoint, {
       properties: contactProperties(),
@@ -1656,11 +1681,15 @@ async function syncHubspotCompanyToServiceM8Client() {
     const lastSyncMillis = new Date(lastSyncISO).getTime().toString();
     const endpoint = "/crm/v3/objects/companies";
 
+    logger.info(
+      `[HubSpot] Last Sync Time: ${lastSyncISO}, Epoch: ${lastSyncMillis}`
+    );
+
     const filterGroups = [
       {
         filters: [
           {
-            propertyName: "lastmodifieddate",
+            propertyName: "hs_lastmodifieddate",
             operator: "GT",
             value: lastSyncMillis,
           },
@@ -1676,7 +1705,7 @@ async function syncHubspotCompanyToServiceM8Client() {
     // const contactStream = hubspotGenerator(endpoint, properties, filterGroups);
 
     for await (const { records, stats } of contactStream) {
-      await processBatchCompanyInServiceM8(records);
+      // await processBatchCompanyInServiceM8(records);
       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
@@ -1684,14 +1713,17 @@ async function syncHubspotCompanyToServiceM8Client() {
       });
     }
   } catch (error) {
-    logger.error("❌ Error processing Companies in Batch", {
-      status: error?.status,
-      response: error.response?.data,
-      method: error?.method,
-      url: error?.config?.url,
-      headers: error?.config?.headers,
-      message: error.message,
-    });
+    logger.error(
+      "❌ Error processing Companies in syncHubspotCompanyToServiceM8Client",
+      {
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+        message: error.message,
+      }
+    );
   }
 }
 
@@ -1757,11 +1789,12 @@ async function fetchHubSpotObject(object, objectId, properties) {
   } catch (error) {
     logger.error(`❌ Error processing search in Hubspot:fetchHubSpotObject`, {
       httpStatus: error?.status,
-      response: error.response?.data,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
       headers: error?.config?.headers,
-      message: error.message,
+      message: error?.message,
+      stack: error?.stack,
     });
   }
 }

@@ -11,7 +11,7 @@ import {
 
 let isRunning = false; // Flag to prevent overlapping executions
 logger.info(`Scheduler Initialized fro Hubspot-ServiceM8 successfully...`);
-const schedulerFrequesncy = "0 */5 * * * *"; // Every 30 min (for testing, adjust as needed for production)
+const schedulerFrequesncy = "0 */2 * * * *"; // Every 5 min (for testing, adjust as needed for production)
 cron.schedule(schedulerFrequesncy, async () => {
   if (isRunning) {
     logger.info(`Hubspot-ServiceM8 is already running...`);

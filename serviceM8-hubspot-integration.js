@@ -11,8 +11,9 @@ import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 // Apply save synclasTime logic in Scheduler
 
 // ------------------------------ Node Cron Schedulers------------------------------------
-import "./src/jobs/serviceM8-hubspot.poller.js";
-import "./src/jobs/hubspot-serviceM8.poller.js";
+// import "./src/jobs/serviceM8-hubspot.poller.js";
+// import "./src/jobs/hubspot-serviceM8.poller.js";
+// import { syncHubspotCompanyToServiceM8Client } from "./src/services/hubspot.service.js";
 
 // ------------------------------- Node Server--------------------------------------------
 const PORT = process.env.PORT || 5000;
@@ -33,6 +34,7 @@ function serverInitialize() {
 }
 
 serverInitialize();
+// syncHubspotCompanyToServiceM8Client();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client
