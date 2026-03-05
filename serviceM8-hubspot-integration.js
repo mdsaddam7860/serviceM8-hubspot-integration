@@ -3,47 +3,21 @@ import path from "path";
 dotenv.config({
   path: path.join(process.cwd(), ".env"),
 });
-import { app } from "./src/app.js";
-import { logger, searchInHubspot } from "./src/index.js";
-import { syncContact } from "./src/services/hubspot.service.js";
+import app from "./src/app.js";
+import { logger } from "./src/index.js";
 import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
 import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
-// Start the server, For CI/CD deployments remove deploy.yml from .gitignore
-// npm i
-import {
-  syncCompaniesTask,
-  syncServiceM8ClientToHubSpotAsContact,
-  syncServiceM8JobToHubSpotAsDeal,
-  syncServiceM8NoteToHubSpotAsActivity,
-  searchInServiceM8,
-  syncServiceM8ClientToHubSpotAsCompany,
-  processBatchCompanyInServiceM8,
-  upsertCompanyInServiceM8,
-  upsertContactInServiceM8,
-  // syncServiceM8CompanyContactToHubSpotAsContact,
-  processBatchDealInServiceM8,
-  processBatchContactInServiceM8,
-  upsertjobInServiceM8,
-} from "./src/services/serviceM8.service.js";
-import { serviceM8Client } from "./src/configs/serviceM8.config.js";
-import {
-  processBatchDealInHubspot,
-  processBatchActivityInHubspot,
-  syncHubspotDealToServiceM8Job,
-  syncHubspotContactToServiceM8Client,
-  processBatchContactInHubspot,
-  processBatchCompanyInHubspot,
-  findContactInHubspot,
-} from "./src/services/hubspot.service.js";
 
-// ------------------------------
-import { getLastSyncTime } from "./src/utils/helper.util.js";
+// Apply save synclasTime logic in Scheduler
+
+// ------------------------------ Node Cron Schedulers------------------------------------
 import "./src/jobs/serviceM8-hubspot.poller.js";
 import "./src/jobs/hubspot-serviceM8.poller.js";
 
+// ------------------------------- Node Server--------------------------------------------
 const PORT = process.env.PORT || 5000;
 
-function serverInit() {
+function serverInitialize() {
   try {
     // Server is up and running
 
@@ -58,12 +32,7 @@ function serverInit() {
   }
 }
 
-serverInit();
-// searchInHubspot("contacts", "sourceid", "031c3925-2922-4515-b6e1-22bcbc60874b");
-// syncHubspotContactToServiceM8Client();
-// searchInServiceM8("company.json", "0004567a-2c25-4d1c-bdad-1cd4559a391b");
-// syncServiceM8ClientToHubSpotAsCompany();
-// processBatchContactInServiceM8();
+serverInitialize();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client

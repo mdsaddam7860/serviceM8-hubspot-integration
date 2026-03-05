@@ -6,9 +6,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Servers running on PORT:${process.env.PORT}");
+  res.sendStatus(200).send("Servers running............");
 });
 
-// endpoints or url fro application can be added here
+app.get("/health", (req, res) => {
+  res.sendStatus(200).send("Servers running............");
+});
 
-export { app };
+// app.get("/startDualSync", (req, res) => {});
+
+export default app;

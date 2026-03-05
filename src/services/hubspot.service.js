@@ -1525,25 +1525,6 @@ async function* hubspotGenerator(
     throw error;
   }
 }
-async function syncContact({ log = logger } = {}) {
-  try {
-    const contactStream = hubspotGenerator("/crm/v3/objects/contacts");
-
-    for await (const { records, stats } of contactStream) {
-      log.info(`Processing a batch of ${records.length} Contacts...`);
-      log.info(`Stats: ${JSON.stringify(stats, null, 2)}`);
-    }
-  } catch (error) {
-    log.error("❌ Error processing Contact in Batch", {
-      status: error?.status,
-      response: error.response?.data,
-      method: error?.method,
-      url: error?.config?.url,
-      headers: error?.config?.headers,
-      message: error.message,
-    });
-  }
-}
 
 async function searchInHubspot(
   endpoint,
@@ -1790,7 +1771,6 @@ export {
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
-  syncContact,
   hubspotGenerator,
   searchInHubspot,
   processBatchCompanyInHubspot,
