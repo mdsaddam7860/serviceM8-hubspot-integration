@@ -295,86 +295,118 @@ async function upsertClientContactInHubspot(record = {}, contactInfo = {}) {
   }
 }
 
-async function upsertContactInHubspot(record = {}, contactInfo = {}) {
+// async function upsertContactInHubspot(record = {}, contactInfo = {}) {
+//   try {
+//     const hs_client = getHubspotClient();
+//     const payload = contactMappingSM8ToHS(record, contactInfo);
+
+//     let existingContact = await findContactInHubspot(contactInfo);
+
+//     const isEmailConflict = (error) => {
+//       const message = error?.response?.data?.message || "";
+//       return (
+//         error?.response?.data?.category === "VALIDATION_ERROR" &&
+//         message.includes("propertyName=email")
+//       );
+//     };
+
+//     const removeEmailFromPayload = (originalPayload) => {
+//       const cloned = {
+//         ...originalPayload,
+//         // properties: { ...originalPayload.properties },
+//       };
+//       delete cloned.email;
+//       return cloned;
+//     };
+
+//     if (existingContact) {
+//       try {
+//         return await hs_client.contacts.updateContact(
+//           existingContact.id,
+//           payload
+//         );
+//       } catch (error) {
+//         logger.error("❌ HubSpot Contact update failed:", {
+//           status: error?.response?.status,
+//           message: error?.response?.data?.message,
+//           category: error?.response?.data?.category,
+//         });
+
+//         // 🔁 Retry without email if duplicate email conflict
+//         if (isEmailConflict(error)) {
+//           logger.warn(
+//             "⚠️ Email conflict detected. Retrying update without email..."
+//           );
+
+//           const retryPayload = removeEmailFromPayload(payload);
+
+//           return await hs_client.contacts.updateContact(
+//             existingContact.id,
+//             retryPayload
+//           );
+//         }
+
+//         throw error; // don't swallow unknown errors
+//       }
+//     } else {
+//       try {
+//         return await hs_client.contacts.createContact(payload);
+//       } catch (error) {
+//         logger.error("❌ HubSpot Contact create failed:", {
+//           status: error?.response?.status,
+//           message: error?.response?.data?.message,
+//           category: error?.response?.data?.category,
+//         });
+
+//         if (isEmailConflict(error)) {
+//           logger.warn(
+//             "⚠️ Email conflict detected. Retrying create without email..."
+//           );
+
+//           const retryPayload = removeEmailFromPayload(payload);
+
+//           return await hs_client.contacts.createContact(retryPayload);
+//         }
+
+//         throw error;
+//       }
+//     }
+//   } catch (error) {
+//     logger.error("❌ HubSpot Contact failed to upsert (outer catch):", {
+//       status: error?.response?.status,
+//       message: error?.response?.data?.message,
+//     });
+
+//     throw error;
+//   }
+// }
+
+async function upsertContactInHubspot(record, contactInfo) {
   try {
     const hs_client = getHubspotClient();
     const payload = contactMappingSM8ToHS(record, contactInfo);
 
-    let existingContact = await findContactInHubspot(contactInfo);
+    let existingContact = null;
+    if (contactInfo) {
+      existingContact = await findContactInHubspot(contactInfo);
+    }
 
-    const isEmailConflict = (error) => {
-      const message = error?.response?.data?.message || "";
-      return (
-        error?.response?.data?.category === "VALIDATION_ERROR" &&
-        message.includes("propertyName=email")
+    if (existingContact && existingContact?.id) {
+      return await hs_client.contacts.updateContact(
+        existingContact.id,
+        payload
       );
-    };
-
-    const removeEmailFromPayload = (originalPayload) => {
-      const cloned = {
-        ...originalPayload,
-        // properties: { ...originalPayload.properties },
-      };
-      delete cloned.email;
-      return cloned;
-    };
-
-    if (existingContact) {
-      try {
-        return await hs_client.contacts.updateContact(
-          existingContact.id,
-          payload
-        );
-      } catch (error) {
-        logger.error("❌ HubSpot Contact update failed:", {
-          status: error?.response?.status,
-          message: error?.response?.data?.message,
-          category: error?.response?.data?.category,
-        });
-
-        // 🔁 Retry without email if duplicate email conflict
-        if (isEmailConflict(error)) {
-          logger.warn(
-            "⚠️ Email conflict detected. Retrying update without email..."
-          );
-
-          const retryPayload = removeEmailFromPayload(payload);
-
-          return await hs_client.contacts.updateContact(
-            existingContact.id,
-            retryPayload
-          );
-        }
-
-        throw error; // don't swallow unknown errors
-      }
     } else {
-      try {
-        return await hs_client.contacts.createContact(payload);
-      } catch (error) {
-        logger.error("❌ HubSpot Contact create failed:", {
-          status: error?.response?.status,
-          message: error?.response?.data?.message,
-          category: error?.response?.data?.category,
-        });
-
-        if (isEmailConflict(error)) {
-          logger.warn(
-            "⚠️ Email conflict detected. Retrying create without email..."
-          );
-
-          const retryPayload = removeEmailFromPayload(payload);
-
-          return await hs_client.contacts.createContact(retryPayload);
-        }
-
-        throw error;
-      }
+      return await hs_client.contacts.createContact(payload);
     }
   } catch (error) {
     logger.error("❌ HubSpot Contact failed to upsert (outer catch):", {
-      status: error?.response?.status,
-      message: error?.response?.data?.message,
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      stack: error?.stack,
     });
 
     throw error;
@@ -409,6 +441,7 @@ async function upsertCompanyInHubspot(record, contactInfo) {
       method: error?.method,
       url: error?.config?.url,
       headers: error?.config?.headers,
+      stack: error?.stack,
     });
     throw error;
   }
@@ -661,12 +694,12 @@ async function processBatchContactInHubspot(
 async function processBatchCompanyInHubspot(
   records = [
     {
-      uuid: "2ef996a9-018f-405e-85f8-1fb1c3bb77fb",
-      edit_date: "2026-01-05 10:13:59",
-      name: "Jon and Naomi West",
+      uuid: "9a54bcc5-a35d-4651-8948-1fb1c671ca4b",
+      edit_date: "2026-03-05 22:43:58",
+      name: "Tony and Sam Fischer",
       website: "",
       abn_number: "",
-      address: "54-64 Cathy Ct,\nCaboolture QLD 4510",
+      address: "2 Lyndhurst Terrace,\nCaboolture QLD 4510",
       address_street: "",
       address_city: "",
       address_state: "",
@@ -786,7 +819,7 @@ async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
           method: error?.method,
           url: error?.config?.url,
           headers: error?.config?.headers,
-          stack: error,
+          stack: error?.stack,
         });
       }
     })
