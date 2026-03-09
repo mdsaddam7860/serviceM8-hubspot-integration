@@ -326,7 +326,7 @@ async function syncServiceM8JobToHubSpotAsDeal() {
     const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
     logger.info(`Getting records : ${formattedDate}`);
 
-    const endpoint = `job.json?$filter=edit_date eq ${formattedDate}`;
+    const endpoint = `job.json?$filter=edit_date eq '${formattedDate}'`;
     // const endpoint = `job.json`;
 
     const jobStream = serviceM8Generator(endpoint);

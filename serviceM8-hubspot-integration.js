@@ -13,7 +13,13 @@ import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 // ------------------------------ Node Cron Schedulers------------------------------------
 // import "./src/jobs/serviceM8-hubspot.poller.js";
 // import "./src/jobs/hubspot-serviceM8.poller.js";
-// import { syncHubspotCompanyToServiceM8Client } from "./src/services/hubspot.service.js";
+import {
+  syncHubspotCompanyToServiceM8Client,
+  processBatchCompanyInHubspot,
+  processBatchDealInHubspot,
+  processBatchActivityInHubspot,
+} from "./src/services/hubspot.service.js";
+import { syncServiceM8JobToHubSpotAsDeal } from "./src/services/serviceM8.service.js";
 
 // ------------------------------- Node Server--------------------------------------------
 const PORT = process.env.PORT || 5000;
@@ -34,7 +40,7 @@ function serverInitialize() {
 }
 
 serverInitialize();
-// syncHubspotCompanyToServiceM8Client();
+processBatchActivityInHubspot();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client
