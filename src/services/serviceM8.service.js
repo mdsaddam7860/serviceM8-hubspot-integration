@@ -23,6 +23,7 @@ import {
   processBatchActivityInHubspot,
   processBatchCompanyInHubspot,
   fetchHubSpotAssociationIds,
+  processBatchTasksInHubspot,
 } from "./hubspot.service.js";
 
 const JOB_CATEGORY_UUID = Object.freeze({
@@ -368,6 +369,44 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
 
     for await (const { records, stats } of jobStream) {
       await processBatchActivityInHubspot(records);
+
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+    }
+
+    logger.info("✅ Full sync successful.");
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+// ✅ Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
+async function syncServiceM8JobChecklistToHubSpotAsTasks() {
+  try {
+    const lastSyncISO = getLastSyncTime();
+
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
+    const endpoint = `jobchecklist.json`;
+    // const endpoint = `jobchecklist.json?$filter=edit_date gt '${formattedDate}'`;
+
+    const jobStream = serviceM8Generator(endpoint);
+
+    for await (const { records, stats } of jobStream) {
+      logger.info(
+        `Processing a batch of ${records.length} records & endpoint ${endpoint}`
+      );
+      await processBatchTasksInHubspot(records);
 
       logger.info(`[ServiceM8 Progress] ${endpoint}`, {
         page: stats.page,
@@ -1226,4 +1265,6 @@ export {
   syncServiceM8NoteToHubSpotAsActivity,
   // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
   syncServiceM8ClientToHubSpotAsCompany,
+  // ✅ Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
+  syncServiceM8JobChecklistToHubSpotAsTasks,
 };

@@ -19,7 +19,10 @@ import {
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
 } from "./src/services/hubspot.service.js";
-import { syncServiceM8JobToHubSpotAsDeal } from "./src/services/serviceM8.service.js";
+import {
+  syncServiceM8JobToHubSpotAsDeal,
+  syncServiceM8JobChecklistToHubSpotAsTasks,
+} from "./src/services/serviceM8.service.js";
 
 // ------------------------------- Node Server--------------------------------------------
 const PORT = process.env.PORT || 5000;
@@ -40,7 +43,7 @@ function serverInitialize() {
 }
 
 serverInitialize();
-processBatchActivityInHubspot();
+syncServiceM8JobChecklistToHubSpotAsTasks();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client

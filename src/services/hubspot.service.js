@@ -2196,12 +2196,95 @@ async function fetchHubSpotObject(object, objectId, properties) {
     });
   }
 }
+
+/*!SECTION
+● Cleaning checklist
+● Safety checklist
+● Preset technician checklist
+● Routine completion steps
+*/
+/**
+ * RESILIENT TASK FILTER
+ * Excludes standard templates and noise while capturing all operational tasks.
+ */
+function filterTechnicianAddedTasks(records = []) {
+  // 1. Define the specific "Blacklist" from the SOW [cite: 35-39]
+  const excludedSections = [
+    "Cleaning checklist",
+    "Safety checklist",
+    "Preset technician checklist",
+    "Routine completion steps",
+  ];
+
+  return records.filter((record) => {
+    // A. RULE: Must be an active record
+    // if (record.active !== 1) return false;
+
+    // B. RULE: Exclude the specific noise-heavy sections mentioned in SOW [cite: 41]
+    if (excludedSections.includes(record.section_name)) return false;
+
+    // C. RULE: Sync only actual "Task" types [cite: 43]
+    // This prevents syncing photos (like your sample), headers, or checklists.
+    // const isActualTask = record.item_type === "Task";
+
+    // D. RULE: Ensure it has content (the 'name' field holds the instruction)
+    const hasInstruction = record.name && record.name.trim().length > 0;
+
+    return hasInstruction;
+    // return isActualTask && hasInstruction;
+  });
+}
+async function processBatchTasksInHubspot(taskRecords = []) {
+  try {
+    const records = filterTechnicianAddedTasks(taskRecords);
+
+    if (records && records.length > 0) {
+      logger.info(`Processing a batch of ${records.length} tasks...`);
+      logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
+    }
+
+    for (const record of records) {
+      try {
+        // Upsert task with idempotency
+      } catch (error) {
+        logger.error(
+          `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
+          {
+            status: error?.status,
+            response: error?.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
+            headers: error?.config?.headers,
+            message: error?.message,
+            stack: error?.stack || error,
+          }
+        );
+      }
+    }
+
+    return;
+  } catch (err) {
+    logger.error(
+      `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
+      {
+        status: err?.status,
+        response: err?.response?.data,
+        method: err?.method,
+        url: err?.config?.url,
+        headers: err?.config?.headers,
+        message: err?.message,
+        stack: err?.stack || err,
+      }
+    );
+  }
+}
 export {
   fetchHubSpotObject,
   fetchHubSpotAssociationIds,
   processBatchContactInHubspot,
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
+  processBatchTasksInHubspot,
   hubspotGenerator,
   searchInHubspot,
   processBatchCompanyInHubspot,
