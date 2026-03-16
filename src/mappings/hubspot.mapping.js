@@ -259,7 +259,22 @@ function activityMappingSM8ToHS(record = {}) {
   //   return { properties: payload };
 }
 
+function taskMappingSM8ToHS(record) {
+  const timestamp = record?.edit_date
+    ? new Date(record.edit_date.replace(" ", "T") + "Z").getTime()
+    : undefined;
+
+  const payload = cleanProps({
+    hs_task_subject: record?.section_name,
+    hs_task_body: record?.name,
+    hs_timestamp: timestamp,
+  });
+
+  return payload;
+}
+
 export {
+  taskMappingSM8ToHS,
   contactMappingSM8ToHS,
   dealMappingSM8ToHS,
   activityMappingSM8ToHS,

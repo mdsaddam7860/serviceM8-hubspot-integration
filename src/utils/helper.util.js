@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { getHubspotClient } from "../configs/hubspot.config.js";
 function delta() {
   const date = new Date();
   // date.setDate(date.getDate() - 2);
@@ -169,6 +170,18 @@ function convertAustralianFormat(phone) {
   return cleaned;
 }
 
+let task_client = null;
+
+function taskClient() {
+  if (task_client) return task_client;
+
+  const client = getHubspotClient();
+
+  task_client = client.customObject("tasks");
+
+  return task_client;
+}
+
 export {
   convertAustralianFormat,
   companyProperties,
@@ -179,4 +192,5 @@ export {
   cleanProps,
   getLastSyncTime,
   saveLastSyncTime,
+  taskClient,
 };

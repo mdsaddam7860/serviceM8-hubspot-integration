@@ -14,6 +14,7 @@ import {
   dealMappingSM8ToHS,
   activityMappingSM8ToHS,
   companyMappingSM8ToHS,
+  taskMappingSM8ToHS,
 } from "./mappings/hubspot.mapping.js"; // Hubspot Mapping functions
 
 // -----------------------------------serviceM8 Mapping Functions-----------------------------------------
@@ -47,6 +48,7 @@ import {
 } from "./services/hubspot.service.js"; // Hubspot Services
 
 export {
+  taskMappingSM8ToHS,
   getLastSyncTime,
   saveLastSyncTime,
   jobContactMappingHSTOSM8,

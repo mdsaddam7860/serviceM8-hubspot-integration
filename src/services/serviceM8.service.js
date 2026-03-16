@@ -562,7 +562,7 @@ async function searchInServiceM8UsingCustomField(
     return response.data || null; // Return the first match or null if no matches
   } catch (error) {
     logger.error(
-      `❌ failed to fetch ${query} : ${customFieldValue} : ${customField}`,
+      `❌ failed to fetch ${query} : ${customField} : ${customValue}`,
       {
         status: error?.response?.status,
         response: error?.response?.data,

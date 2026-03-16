@@ -18,6 +18,7 @@ import {
   processBatchCompanyInHubspot,
   processBatchDealInHubspot,
   processBatchActivityInHubspot,
+  processBatchTasksInHubspot,
 } from "./src/services/hubspot.service.js";
 import {
   syncServiceM8JobToHubSpotAsDeal,
@@ -43,7 +44,7 @@ function serverInitialize() {
 }
 
 serverInitialize();
-syncServiceM8JobChecklistToHubSpotAsTasks();
+processBatchTasksInHubspot();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client

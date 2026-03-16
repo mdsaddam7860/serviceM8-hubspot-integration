@@ -9,6 +9,7 @@ import {
   companyProperties,
   getLastSyncTime,
   saveLastSyncTime,
+  taskMappingSM8ToHS,
 } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
@@ -20,6 +21,8 @@ import {
   processBatchDealInServiceM8,
   processBatchCompanyInServiceM8,
 } from "./serviceM8.service.js";
+
+import { taskClient } from "../utils/helper.util.js";
 
 async function processDealContactAssociation(
   contactInfo = {},
@@ -496,70 +499,11 @@ async function upsertCompanyInHubspot(record, contactInfo) {
     throw error;
   }
 }
-async function upsertDealInHubspot(
-  // record = {
-  //   uuid: "16eea0d2-7076-41de-8b42-23c9929c04ab",
-  //   active: 1,
-  //   date: "2026-02-01 00:00:00",
-  //   job_address: "35 Wigmore St,\nWillowbank QLD 4306",
-  //   billing_address: "29 Willowbank Drive\nWillowbank QLD 4306",
-  //   status: "Completed",
-  //   quote_date: "0000-00-00 00:00:00",
-  //   work_order_date: "2026-02-01 01:12:50",
-  //   work_done_description: "",
-  //   lng: 152.6862632,
-  //   lat: -27.6595746,
-  //   generated_job_id: "41339",
-  //   completion_date: "2026-02-10 12:53:30",
-  //   completion_actioned_by_uuid: "0e99fd57-6a69-4082-b99d-208b8c8c23bb",
-  //   unsuccessful_date: "0000-00-00 00:00:00",
-  //   payment_date: "2026-02-10 00:00:00",
-  //   payment_method: "Xero",
-  //   payment_amount: 340,
-  //   payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-  //   edit_date: "2026-02-11 06:11:17",
-  //   geo_is_valid: 1,
-  //   payment_note: "",
-  //   ready_to_invoice: "1",
-  //   ready_to_invoice_stamp: "2026-02-11 05:54:42",
-  //   company_uuid: "8d947baa-5e0e-45d1-9241-1d92165358bb",
-  //   geo_country: "Australia",
-  //   geo_postcode: "4306",
-  //   geo_state: "QLD",
-  //   geo_city: "Willowbank",
-  //   geo_street: "Wigmore Street",
-  //   geo_number: "35",
-  //   payment_processed: 1,
-  //   payment_processed_stamp: "2026-02-11 05:56:45",
-  //   payment_received: 1,
-  //   payment_received_stamp: "2026-02-10 00:00:00",
-  //   total_invoice_amount: "340.0000",
-  //   job_is_scheduled_until_stamp: "2026-02-10 12:45:00",
-  //   category_uuid: "fdbd659d-ab04-420f-bcee-1d06605b9e6b",
-  //   queue_uuid: "",
-  //   queue_expiry_date: "0000-00-00 00:00:00",
-  //   badges:
-  //     '["ad20f191-a7a7-4c66-ae12-1cd9fd761a2b","32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
-  //   invoice_sent: true,
-  //   purchase_order_number: "",
-  //   invoice_sent_stamp: "2026-02-10 12:53:36",
-  //   queue_assigned_staff_uuid: "",
-  //   quote_sent_stamp: "0000-00-00 00:00:00",
-  //   quote_sent: false,
-  //   customfield_application_number: "",
-  //   customfield_lot: "0",
-  //   customfield_plan: "",
-  //   active_network_request_uuid: "",
-  //   customfield_lead_source: "",
-  //   customfield_xero_tracking_cat_1: "",
-  //   customfield_xero_tracking_cat_2: "HSTP Service",
-  //   related_knowledge_articles: false,
-  //   job_description:
-  //     "Quarterly service Feb  2026  - Confirmed.    \n \nLast service date - Nov   2025.    \n\nBILLING INFO\n\nAnnual 1/4 - $340 \n\nplandev@ipswich.qld.gov.au ",
-  //   created_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-  // }
-  record = {}
-) {
+async function upsertDealInHubspot(record) {
+  if (!record) {
+    logger.warn(`Missing Record to sync to Hubspot`);
+    return;
+  }
   try {
     // Find deal if exist update else create deal
     const hs_client = getHubspotClient();
@@ -567,16 +511,37 @@ async function upsertDealInHubspot(
     const sourceid = record?.uuid;
     const payload = dealMappingSM8ToHS(record);
 
-    logger.info(`[HUBSPOT DEAL] payload: ${JSON.stringify(payload, null, 2)}`);
+    logger.info(
+      `[HUBSPOT DEAL] payload: ${JSON.stringify(
+        payload,
+        null,
+        2
+      )}\n Record : ${JSON.stringify(record, null, 2)}`
+    );
 
     // search contact based on sourceid
 
-    const existingDeal = await hs_client.deals.getDealByCustomField(
-      "sourceid",
-      sourceid
-    );
+    let existingDeal = null;
+    const properties = dealProperties();
+
+    if (record?.uuid) {
+      existingDeal = await hs_client.deals.getDealByCustomField(
+        "job_uuid_service_m8",
+        record?.uuid,
+        properties
+      );
+    }
 
     if (existingDeal) {
+      logger.info(
+        `[HUBSPOT DEAL] Deal already exists: ${JSON.stringify(
+          existingDeal,
+          null,
+          2
+        )}`
+      );
+      // TODO if Deal alrady exists in HUbspot then first check if the deal needs to be updated(Idempotency check)
+
       // Update Deal
       return await hs_client.deals.updateDeal(existingDeal?.id, payload);
     } else {
@@ -1351,59 +1316,7 @@ async function processBatchDealInHubspot(
 
   for (const [index, record] of filterRecords.entries()) {
     try {
-      logger.info(
-        `🚀 [${index + 1}/${records.length}] Processing Job: ${JSON.stringify(
-          record,
-          null,
-          2
-        )}`
-      );
-
-      // 1. upsert Deal and fetch Contacts in Parallel
-      const [upsertResult, contactsResult] = await Promise.allSettled([
-        upsertDealInHubspot(record),
-        searchInServiceM8UsingCustomField(
-          "jobcontact.json",
-          "job_uuid",
-          record?.uuid
-        ),
-      ]);
-
-      if (upsertResult.status === "rejected") {
-        logger.error(`❌ Skipped: Could not upsert Deal for ${record.uuid}`);
-        continue;
-      }
-
-      const upsertDeal = upsertResult.value;
-      const contacts =
-        contactsResult.status === "fulfilled" ? contactsResult.value : [];
-
-      // 2. Guard: Handle HubSpot Upsert Failure
-      if (!upsertDeal?.id) {
-        logger.error(`❌ Skipped: Could not upsert Deal for ${record.uuid}`);
-        continue;
-      }
-      // logger.info(`✅ Upserted Deal: ${upsertDeal.id}`);
-      logger.info(`✅ Upserted Deal: ${JSON.stringify(upsertDeal)}`);
-
-      // 3. Guard: Handle Missing Contacts (Use CONTINUE, not return)
-      if (!contacts || contacts.length === 0) {
-        logger.warn(
-          `⚠️ No contacts found for Job ${record.uuid}. skipping associations.`
-        );
-        continue;
-      }
-      logger.info(
-        `🔍 Found ${contacts.length} contacts. Starting associations...`
-      );
-
-      // 4. Process all contacts for this specific job in parallel
-      // We await this so the loop stays organized
-      await Promise.allSettled(
-        contacts.map((contactInfo, inner_index) =>
-          processDealContactAssociation(contactInfo, upsertDeal.id, inner_index)
-        )
-      );
+      await processSingleDealInHubspot(record, index, filterRecords.length);
     } catch (error) {
       logger.error(`❌ Fatal error processing Job ${record.uuid}:`, {
         status: error?.status,
@@ -1417,6 +1330,74 @@ async function processBatchDealInHubspot(
 
   // End the timer after the loop finishes all records
   console.timeEnd("BatchProcessingTimer");
+}
+
+async function processSingleDealInHubspot(record, index, recordSize) {
+  try {
+    logger.info(
+      `🚀 [${index + 1}/${recordSize}] Processing Job: ${JSON.stringify(
+        record,
+        null,
+        2
+      )}`
+    );
+
+    // 1. upsert Deal and fetch Contacts in Parallel
+    const [upsertResult, contactsResult] = await Promise.allSettled([
+      upsertDealInHubspot(record),
+      searchInServiceM8UsingCustomField(
+        "jobcontact.json",
+        "job_uuid",
+        record?.uuid
+      ),
+    ]);
+
+    if (upsertResult.status === "rejected") {
+      logger.error(` Skipped: Could not upsert Deal for ${record.uuid}`);
+      return null;
+    }
+
+    const upsertDeal = upsertResult.value;
+    const contacts =
+      contactsResult.status === "fulfilled" ? contactsResult.value : [];
+
+    // 2. Guard: Handle HubSpot Upsert Failure
+    if (!upsertDeal?.id) {
+      logger.error(` Skipped: Could not upsert Deal for ${record.uuid}`);
+      return null;
+    }
+    // logger.info(` Upserted Deal: ${upsertDeal.id}`);
+    logger.info(` Upserted Deal: ${JSON.stringify(upsertDeal)}`);
+
+    // 3. Guard: Handle Missing Contacts (Use CONTINUE, not return)
+    if (!contacts || contacts.length === 0) {
+      logger.warn(
+        `⚠️ No contacts found for Job ${record.uuid}. skipping associations.`
+      );
+      return upsertDeal;
+    }
+    logger.info(
+      `🔍 Found ${contacts.length} contacts. Starting associations...`
+    );
+
+    // 4. Process all contacts for this specific job in parallel
+    // We await this so the loop stays organized
+    await Promise.allSettled(
+      contacts.map((contactInfo, inner_index) =>
+        processDealContactAssociation(contactInfo, upsertDeal.id, inner_index)
+      )
+    );
+
+    return upsertDeal;
+  } catch (error) {
+    logger.error(`❌ Fatal error processing Deal ${record.uuid}:`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+    });
+  }
 }
 async function processBatchActivityInHubspot(
   records = [
@@ -1859,7 +1840,7 @@ async function processBatchActivityInHubspot(
  * @param {Object[]} [options.filterGroups] - The filter groups to apply to the stream
  * @param {import("axios").AxiosInstance} [options.axiosInstance] - The Axios instance to use for the stream
  * @param {function} [options.executor] - The executor function to use for the stream
- * @param {import("pino")} [options.log] - The logger to use for debugging
+ * @param {import("winston")} [options.log] - The logger to use for debugging
  * @returns {Generator<{records: Object[], stats: Object}>}
  */
 async function* hubspotGenerator(
@@ -2234,18 +2215,82 @@ function filterTechnicianAddedTasks(records = []) {
     // return isActualTask && hasInstruction;
   });
 }
-async function processBatchTasksInHubspot(taskRecords = []) {
+async function processBatchTasksInHubspot(
+  taskRecords = [
+    {
+      edit_date: "2025-08-07 20:38:07",
+      active: 1,
+      job_uuid: "c255f31c-87e5-46d8-b358-231841e4162b",
+      name: "Take photo of chlorine chute being topped up",
+      item_type: "Photo",
+      sort_order: 5010,
+      completed_timestamp: "0000-00-00 00:00:00",
+      completed_by_staff_uuid: "",
+      completed_during_checkin_uuid: "",
+      section_name: "Photos",
+      regarding_object: "",
+      regarding_object_uuid: "",
+      fulfilled_by_object_name: "",
+      fulfilled_by_object_uuid: "",
+      is_locked: "0",
+      reminder_type: "",
+      assigned_by_staff_uuid: "",
+      assigned_timestamp: "0000-00-00 00:00:00",
+      uuid: "0000053e-a79a-47c8-9bba-231848439eab",
+      reminder_data: [],
+      assigned_to_staff_uuids: false,
+    },
+  ]
+) {
   try {
     const records = filterTechnicianAddedTasks(taskRecords);
 
-    if (records && records.length > 0) {
-      logger.info(`Processing a batch of ${records.length} tasks...`);
-      logger.info(`Record : ${JSON.stringify(records[0], null, 2)}`);
-    }
+    if (!records || records.length === 0) return null; // No tasks to process
+    logger.info(`Processing a batch of ${records.length} tasks...`);
+
+    const client = getHubspotClient();
 
     for (const record of records) {
       try {
+        logger.info(
+          `[ServiceM8] Processing Task : ${JSON.stringify(record, null, 2)}`
+        );
+
         // Upsert task with idempotency
+        const upsertTask = await upsertTaskInHubspot(record);
+        // Fetch job from servicem8 using job_uuid and uosert deal in hubspot to ensure data integrity
+        logger.info(`Upserted Task : ${JSON.stringify(upsertTask, null, 2)}`);
+
+        const fetchJob = await searchInServiceM8UsingCustomField(
+          "job.json",
+          "uuid",
+          record?.job_uuid
+        );
+
+        // Upsert job with idempotency
+        const upsertDealInHubspot = await processSingleDealInHubspot(
+          fetchJob[0],
+          0,
+          1
+        );
+        // logger.info(
+        //   `Upserted Job: ${JSON.stringify(upsertDealInHubspot, null, 2)}`
+        // );
+
+        if (upsertDealInHubspot && upsertTask) {
+          const associateTaskToJob = await client.associations.associate(
+            "deals",
+            upsertDealInHubspot?.id,
+            "tasks",
+            upsertTask?.id,
+            215
+          );
+
+          logger.info(`Associate DealId : ${
+            upsertDealInHubspot?.id
+          } with TaskId : ${upsertTask?.id} 
+          Result : ${JSON.stringify(associateTaskToJob, null, 2)}`);
+        }
       } catch (error) {
         logger.error(
           `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
@@ -2278,6 +2323,23 @@ async function processBatchTasksInHubspot(taskRecords = []) {
     );
   }
 }
+
+async function upsertTaskInHubspot(record) {
+  try {
+    const task = taskClient();
+    const payload = taskMappingSM8ToHS(record);
+
+    return await task.create(payload);
+    // Upsert Task with idempotency
+  } catch (error) {
+    logger.error("❌ HubSpot Task failed to upsert (outer catch):", {
+      status: error?.status,
+      message: error?.message,
+      response: error?.response?.data,
+      stack: error?.stack || error,
+    });
+  }
+}
 export {
   fetchHubSpotObject,
   fetchHubSpotAssociationIds,
@@ -2289,6 +2351,7 @@ export {
   searchInHubspot,
   processBatchCompanyInHubspot,
   findContactInHubspot,
+  processSingleDealInHubspot,
   // ✅ Fetch deal from hubspot and sync to serviceM8 as Job, Job will be only one way sync from HS-SM8
   syncHubspotDealToServiceM8Job,
   // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
