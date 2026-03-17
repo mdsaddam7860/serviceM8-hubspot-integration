@@ -2256,41 +2256,7 @@ async function processBatchTasksInHubspot(
           `[ServiceM8] Processing Task : ${JSON.stringify(record, null, 2)}`
         );
 
-        // Upsert task with idempotency
-        const upsertTask = await upsertTaskInHubspot(record);
-        // Fetch job from servicem8 using job_uuid and uosert deal in hubspot to ensure data integrity
-        logger.info(`Upserted Task : ${JSON.stringify(upsertTask, null, 2)}`);
-
-        const fetchJob = await searchInServiceM8UsingCustomField(
-          "job.json",
-          "uuid",
-          record?.job_uuid
-        );
-
-        // Upsert job with idempotency
-        const upsertDealInHubspot = await processSingleDealInHubspot(
-          fetchJob[0],
-          0,
-          1
-        );
-        // logger.info(
-        //   `Upserted Job: ${JSON.stringify(upsertDealInHubspot, null, 2)}`
-        // );
-
-        if (upsertDealInHubspot && upsertTask) {
-          const associateTaskToJob = await client.associations.associate(
-            "deals",
-            upsertDealInHubspot?.id,
-            "tasks",
-            upsertTask?.id,
-            215
-          );
-
-          logger.info(`Associate DealId : ${
-            upsertDealInHubspot?.id
-          } with TaskId : ${upsertTask?.id} 
-          Result : ${JSON.stringify(associateTaskToJob, null, 2)}`);
-        }
+        await processSingleTasksInHubspot(record, client);
       } catch (error) {
         logger.error(
           `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
@@ -2319,6 +2285,70 @@ async function processBatchTasksInHubspot(
         headers: err?.config?.headers,
         message: err?.message,
         stack: err?.stack || err,
+      }
+    );
+  }
+}
+
+async function processSingleTasksInHubspot(record, client) {
+  try {
+    const [upsertTaskResult, fetchJobResult] = await Promise.allSettled([
+      upsertTaskInHubspot(record),
+      searchInServiceM8UsingCustomField("job.json", "uuid", record?.job_uuid),
+    ]);
+
+    if (upsertTaskResult.status === "rejected") {
+      logger.info(`Skipped: Could not upsert Task for ${record.uuid}`);
+      return;
+    }
+    // Upsert task with idempotency
+    const upsertTask = upsertTaskResult.valuue;
+    // Fetch job from servicem8 using job_uuid and uosert deal in hubspot to ensure data integrity
+    logger.info(`Upserted Task : ${JSON.stringify(upsertTask, null, 2)}`);
+
+    const fetchJob =
+      fetchJobResult.status === "fulfilled" ? fetchJobResult.value : [];
+
+    if (fetchJob && fetchJob.length === 0) {
+      logger.info(`Job not found for ${record?.job_uuid}`);
+      return;
+    }
+
+    // Upsert job with idempotency
+    const upsertDealInHubspot = await processSingleDealInHubspot(
+      fetchJob[0],
+      0,
+      1
+    );
+    // logger.info(
+    //   `Upserted Job: ${JSON.stringify(upsertDealInHubspot, null, 2)}`
+    // );
+
+    if (upsertDealInHubspot && upsertTask) {
+      const associateTaskToJob = await client.associations.associate(
+        "deals",
+        upsertDealInHubspot?.id,
+        "tasks",
+        upsertTask?.id,
+        215
+      );
+
+      logger.info(`Associate DealId : ${
+        upsertDealInHubspot?.id
+      } with TaskId : ${upsertTask?.id} 
+       Result : ${JSON.stringify(associateTaskToJob, null, 2)}`);
+    }
+  } catch (error) {
+    logger.error(
+      `❌ Error processing search in Hubspot:processSingleTasksInHubspot`,
+      {
+        status: error?.status,
+        response: error?.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+        message: error?.message,
+        stack: error?.stack || err,
       }
     );
   }
