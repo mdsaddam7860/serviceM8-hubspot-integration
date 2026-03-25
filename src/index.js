@@ -15,6 +15,7 @@ import {
   activityMappingSM8ToHS,
   companyMappingSM8ToHS,
   taskMappingSM8ToHS,
+  PIPELINE_CATEGORY,
 } from "./mappings/hubspot.mapping.js"; // Hubspot Mapping functions
 
 // -----------------------------------serviceM8 Mapping Functions-----------------------------------------
@@ -40,6 +41,7 @@ import {
   getLastSyncTime,
   saveLastSyncTime,
   needsUpdate,
+  taskProperties,
 } from "./utils/helper.util.js"; // Helper functions
 
 // ------------------------------------------------Hubspot Services-----------------------------------------
@@ -49,6 +51,8 @@ import {
 } from "./services/hubspot.service.js"; // Hubspot Services
 
 export {
+  PIPELINE_CATEGORY,
+  taskProperties,
   needsUpdate,
   taskMappingSM8ToHS,
   getLastSyncTime,

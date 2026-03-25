@@ -128,8 +128,10 @@ function getLastSyncTime() {
   // const oneHourAgo = new Date();
   // oneHourAgo.setHours(oneHourAgo.getHours() - 1);
   // return oneHourAgo.toISOString();
+
+  // TODO : Change delta to 1 Hour
   const fifteenMinsAgo = new Date();
-  fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 8);
+  fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 1);
   return fifteenMinsAgo.toISOString();
 }
 
@@ -223,7 +225,23 @@ function needsUpdate(payload, existingRecord, objectType = "Object") {
   return false;
 }
 
+function taskProperties() {
+  return [
+    "hs_object_id",
+    "service_m8_uuid",
+    "hs_task_subject",
+    "hs_task_status",
+    "hs_task_reminders",
+    "hs_task_recurrence",
+    "hs_repeat_status",
+    "hs_task_repeat_interval",
+    "hs_repeat_status",
+    "hs_task_repeat_interval",
+  ];
+}
+
 export {
+  taskProperties,
   needsUpdate,
   convertAustralianFormat,
   companyProperties,

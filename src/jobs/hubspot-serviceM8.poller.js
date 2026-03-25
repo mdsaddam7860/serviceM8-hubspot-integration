@@ -1,17 +1,22 @@
 import cron from "node-cron";
 import { logger } from "../index.js";
 import {
-  // ✅ Fetch deal from hubspot and sync to serviceM8 as Job, Job will be only one way sync from HS-SM8
+  // --------------------------[Hubspot -> ServiceM8]--------------------------
+  //  Deal -> Job
   syncHubspotDealToServiceM8Job,
-  // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
+  // Contact -> Client
   syncHubspotContactToServiceM8Client,
-  // ✅ Fetch company from hubspot and sync to serviceM8 as company(client)
+  // Company -> Client
   syncHubspotCompanyToServiceM8Client,
 } from "../services/hubspot.service.js";
 
 let isRunning = false; // Flag to prevent overlapping executions
-logger.info(`Scheduler Initialized fro Hubspot-ServiceM8 successfully...`);
-const schedulerFrequesncy = "0 */2 * * * *"; // Every 5 min (for testing, adjust as needed for production)
+// const schedulerFrequesncy = "0 */2 * * * *"; // Every 2 min (for testing, adjust as needed for production)
+const schedulerFrequesncy = "0 * * * *"; // Every Hour at min 0 (for testing, adjust as needed for production)
+
+logger.info(
+  `Scheduler Initialized fro Hubspot-ServiceM8 successfully Sync-Frequency ${schedulerFrequesncy}`
+);
 cron.schedule(schedulerFrequesncy, async () => {
   if (isRunning) {
     logger.info(`Hubspot-ServiceM8 is already running...`);

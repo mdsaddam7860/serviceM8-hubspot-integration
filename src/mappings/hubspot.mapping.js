@@ -177,9 +177,19 @@ function companyMappingSM8ToHS(record, contactInfo = {}) {
 // }
 
 const PIPELINE_CATEGORY = Object.freeze({
+  // I - Emma Quote -> Emma Pipeline -> 1322868159
   "3f20f466-f849-4bfa-ab52-23e6fe361feb": "1322868159",
+
+  //  I - Supply Only   -> Emma Pipeline -> 1322868159
+  "9f41bb38-b426-477c-bc58-20c454051fab": "1322868159",
+
+  // M - Contractor -> Service Maintenance Pipeline -> 1621074403
   "ec7ccf61-b811-459c-b006-22f3866d35fb": "1621074403",
+
+  //  M - Maintenance -> Service Maintenance Pipeline -> 1621074403
   "f4460be7-395d-42ca-a465-22f384e3a8fb": "1621074403",
+
+  //  S - Maintenance   -> Service Maintenance Pipeline -> 1621074403
   "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b": "1621074403",
 });
 function dealMappingSM8ToHS(record = {}) {
@@ -205,6 +215,7 @@ function dealMappingSM8ToHS(record = {}) {
     generated_job_id_service_m8: record?.generated_job_id,
     sourceid: record?.uuid,
     dealname: record?.job_address?.split("\n")[0] || "New Job", // Using address as name, or a fallback
+    // pipeline: PIPELINE_CATEGORY[record?.category_uuid],
     pipeline: PIPELINE_CATEGORY[record?.category_uuid] || "default",
     dealstage: "2564260296",
 
@@ -266,15 +277,29 @@ function activityMappingSM8ToHS(record = {}) {
   //   return { properties: payload };
 }
 
-function taskMappingSM8ToHS(record) {
-  const timestamp = record?.edit_date
-    ? new Date(record.edit_date.replace(" ", "T") + "Z").getTime()
+function getTaskTimeStamp(date) {
+  const timestamp = date
+    ? new Date(date.replace(" ", "T") + "Z").getTime()
     : undefined;
 
+  return timestamp;
+}
+
+function taskMappingSM8ToHS(record) {
   const payload = cleanProps({
+    service_m8_uuid: record?.uuid,
     hs_task_subject: record?.section_name,
     hs_task_body: record?.name,
-    hs_timestamp: timestamp,
+    hs_timestamp: getTaskTimeStamp(record?.edit_date),
+
+    hs_task_reminders: getTaskTimeStamp(
+      record?.reminder_data?.absoluteDateTime
+    ),
+    // hs_repeat_status: "REPEATING",
+    // hs_task_repeat_interval: {
+    //   freq: "WEEKDAY",
+    //   interval: 1,
+    // },
   });
 
   return payload;
@@ -286,4 +311,5 @@ export {
   dealMappingSM8ToHS,
   activityMappingSM8ToHS,
   companyMappingSM8ToHS,
+  PIPELINE_CATEGORY,
 };

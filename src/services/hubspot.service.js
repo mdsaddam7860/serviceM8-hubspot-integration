@@ -1,3 +1,4 @@
+// ------------------------index.js----------------------------------
 import {
   logger,
   contactMappingSM8ToHS,
@@ -11,6 +12,8 @@ import {
   saveLastSyncTime,
   taskMappingSM8ToHS,
   needsUpdate,
+  taskProperties,
+  PIPELINE_CATEGORY,
 } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
@@ -19,6 +22,7 @@ import {
   searchInServiceM8UsingCustomField,
   processBatchContactInServiceM8,
   JOB_CATEGORY_UUID,
+  SECURITY_ROLES,
   processBatchDealInServiceM8,
   processBatchCompanyInServiceM8,
 } from "./serviceM8.service.js";
@@ -1320,6 +1324,7 @@ async function processBatchDealInHubspot(
 
   for (const [index, record] of filterRecords.entries()) {
     try {
+      // check for pipeline if exists then process otherwise skip
       await processSingleDealInHubspot(record, index, filterRecords.length);
     } catch (error) {
       logger.error(`❌ Fatal error processing Job ${record.uuid}:`, {
@@ -1338,6 +1343,14 @@ async function processBatchDealInHubspot(
 
 async function processSingleDealInHubspot(record, index, recordSize) {
   try {
+    // if (!PIPELINE_CATEGORY[record?.category_uuid]) {
+    //   logger.info(
+    //     `[${index + 1}/${recordSize}] Skipping Job: ${JSON.stringify(
+    //       record
+    //     )} | pipeline Category not found: ${record?.category_uuid} `
+    //   );
+    //   return;
+    // }
     logger.info(
       `🚀 [${index + 1}/${recordSize}] Processing Job: ${JSON.stringify(
         record,
@@ -1995,6 +2008,7 @@ async function syncHubspotDealToServiceM8Job() {
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
     }
+    logger.info(`[Hubspot] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error("❌ Error processing Deal in Batch", {
       httpStatus: error?.status,
@@ -2043,6 +2057,7 @@ async function syncHubspotContactToServiceM8Client() {
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
     }
+    logger.info(`[Hubspot] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error("❌ Error processing Contacts in Batch", {
       status: error?.status,
@@ -2095,6 +2110,7 @@ async function syncHubspotCompanyToServiceM8Client() {
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
     }
+    logger.info(`[Hubspot] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error(
       "❌ Error processing Companies in syncHubspotCompanyToServiceM8Client",
@@ -2203,7 +2219,7 @@ function filterTechnicianAddedTasks(records = []) {
 
   return records.filter((record) => {
     // A. RULE: Must be an active record
-    // if (record.active !== 1) return false;
+    if (!record.section_name || !record.assigned_by_staff_uuid) return false;
 
     // B. RULE: Exclude the specific noise-heavy sections mentioned in SOW [cite: 41]
     if (excludedSections.includes(record.section_name)) return false;
@@ -2245,27 +2261,29 @@ async function processBatchTasksInHubspot(
     //   assigned_to_staff_uuids: false,
     // },
     {
-      edit_date: "2024-05-13 14:59:28",
+      edit_date: "2026-03-18 16:44:27",
       active: 1,
-      job_uuid: "67f65853-79f9-436d-aa1e-20e3bfd548cb",
-      name: "Take photo of tree roots (if applicable)",
-      item_type: "Photo",
-      sort_order: 11,
-      completed_timestamp: "0000-00-00 00:00:00",
-      completed_by_staff_uuid: "",
+      job_uuid: "e643d1ae-a831-455e-a2ad-23e938f4be3b",
+      name: "***Ericka please send a quote for electrician to attend and replace air pressure switch in Aqua Nova",
+      item_type: "Todo",
+      sort_order: 7020,
+      completed_timestamp: "2026-03-16 17:43:43",
+      completed_by_staff_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
       completed_during_checkin_uuid: "",
-      section_name: "",
+      section_name: "After Service Checklist",
       regarding_object: "",
       regarding_object_uuid: "",
       fulfilled_by_object_name: "",
       fulfilled_by_object_uuid: "",
       is_locked: "0",
-      reminder_type: "",
-      assigned_by_staff_uuid: "",
-      assigned_timestamp: "0000-00-00 00:00:00",
-      uuid: "0001ef46-1c41-4ff9-aa52-20e3b73cdf2b",
-      reminder_data: [],
-      assigned_to_staff_uuids: false,
+      reminder_type: "ABSOLUTE_DATETIME",
+      assigned_by_staff_uuid: "b1fe7e3b-7859-4d2c-9159-1fd12891dd3b",
+      assigned_timestamp: "2026-03-13 12:13:17",
+      uuid: "c00531db-f9b0-41c1-81de-23f20e47ce9a",
+      reminder_data: {
+        absoluteDateTime: "2026-03-23 06:00:00",
+      },
+      assigned_to_staff_uuids: ["b1fe7e3b-7859-4d2c-9159-1fd12891dd3b"],
     },
   ]
 ) {
@@ -2283,7 +2301,27 @@ async function processBatchTasksInHubspot(
           `[ServiceM8] Processing Task : ${JSON.stringify(record, null, 2)}`
         );
 
-        await processSingleTasksInHubspot(record, client);
+        // only sync task that belongs to user where user(staff) role is “Service Technician" or Contractor
+
+        const staffRecord = await searchInServiceM8(
+          "staff.json",
+          record.assigned_by_staff_uuid
+        );
+
+        // logger.info(
+        //   `[ServiceM8] Staff : ${JSON.stringify(staffRecord, null, 2)}`
+        // );
+
+        if (!staffRecord.security_role_uuid) {
+          logger.info(
+            `[ServiceM8] No security role found for staff: ${record.assigned_by_staff_uuid}`
+          );
+          continue;
+        }
+
+        if (SECURITY_ROLES[staffRecord?.security_role_uuid]) {
+          await processSingleTasksInHubspot(record, client);
+        }
       } catch (error) {
         logger.error(
           `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
@@ -2387,6 +2425,23 @@ async function upsertTaskInHubspot(record) {
     const payload = taskMappingSM8ToHS(record);
     logger.info(`payload: ${JSON.stringify(payload, null, 2)}`);
 
+    // search task in hubspot using sourceid which is task uuid from serviceM8
+
+    let properties = taskProperties();
+    let existingTask = null;
+    existingTask = await task.getCustomObjectByCustomField(
+      "service_m8_uuid",
+      record?.uuid,
+      properties
+    );
+    logger.info(`Existing task: ${JSON.stringify(existingTask, null, 2)}`);
+    // properties = properties.join(",");
+
+    if (existingTask && existingTask?.id) {
+      // update task
+      return await task.update(existingTask?.id, payload, properties);
+    }
+
     // const taskCreated = await task.create(payload);
     // logger.info(`Created Task: ${JSON.stringify(taskCreated, null, 2)}`);
 
@@ -2401,22 +2456,52 @@ async function upsertTaskInHubspot(record) {
     });
   }
 }
+
+async function HubspotToServiceM8Sync() {
+  try {
+    await syncHubspotDealToServiceM8Job();
+    await syncHubspotContactToServiceM8Client();
+    await syncHubspotCompanyToServiceM8Client();
+  } catch (error) {
+    logger.error(
+      `❌ Error processing search in Hubspot:HubspotToServiceM8Sync`,
+      {
+        status: error?.status,
+        response: error?.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+        message: error?.message,
+        stack: error?.stack || error,
+      }
+    );
+  }
+}
 export {
-  fetchHubSpotObject,
-  fetchHubSpotAssociationIds,
-  processBatchContactInHubspot,
-  processBatchDealInHubspot,
-  processBatchActivityInHubspot,
-  processBatchTasksInHubspot,
-  hubspotGenerator,
-  searchInHubspot,
-  processBatchCompanyInHubspot,
+  //  -----------------------[Hubspot Search & Fetch] ------------------------------------
+  fetchHubSpotObject, // Fetch object from hubspot
+  fetchHubSpotAssociationIds, // Fetch associated ids from hubspot
+  searchInHubspot, // Search in hubspot
   findContactInHubspot,
-  processSingleDealInHubspot,
-  // ✅ Fetch deal from hubspot and sync to serviceM8 as Job, Job will be only one way sync from HS-SM8
+
+  // --------------------------[Batch Process & Orchestration]    -----------------------------------
+  processBatchContactInHubspot, // Bulk Process Contacts Sync
+  processBatchDealInHubspot, // Bulk Process Deals Sync
+  processBatchActivityInHubspot, // Bulk Process Activity(Note) Sync
+  processBatchTasksInHubspot, // Bulk Process Tasks Sync
+  processBatchCompanyInHubspot, // Bulk Process Company Sync
+
+  // -----------------------[Single Process & Orchestration]    -----------------------------------
+  processSingleDealInHubspot, // ProcessSingle Deal Sync
+
+  // --------------------------[Hubspot -> ServiceM8]--------------------------
+  //  Deal -> Job
   syncHubspotDealToServiceM8Job,
-  // ✅ Fetch Contact from hubspot and sync to serviceM8 as Client
+  // Contact -> Client
   syncHubspotContactToServiceM8Client,
-  // ✅ Fetch company from hubspot and sync to serviceM8 as company(client)
+  // Company -> Client
   syncHubspotCompanyToServiceM8Client,
+
+  // -----------------------[Hubspot -> ServiceM8]    -----------------------------------
+  HubspotToServiceM8Sync,
 };

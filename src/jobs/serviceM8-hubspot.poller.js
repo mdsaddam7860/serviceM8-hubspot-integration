@@ -1,21 +1,27 @@
 import cron from "node-cron";
 import { logger } from "../index.js";
 import {
-  // ✅ Fetch Client from serviceM8 and sync to Hubspot as Contact
+  // ---------------- [ ServiceM8 → HubSpot Sync ] ----------------
+  // Client → Contact
   syncServiceM8ClientToHubSpotAsContact,
-  // ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
+  // Job → Deal
   syncServiceM8JobToHubSpotAsDeal,
-  // ✅ Fetch Note from serviceM8 and sync to Hubspot as Activity
+  // Note → Activity (Timeline)
   syncServiceM8NoteToHubSpotAsActivity,
-  // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
+  // Client → Company
   syncServiceM8ClientToHubSpotAsCompany,
-  // ✅ Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
+  // Job Checklist → Tasks
   syncServiceM8JobChecklistToHubSpotAsTasks,
 } from "../services/serviceM8.service.js";
-logger.info(`Scheduler Initialized fro ServiceM8-Hubspot successfully...`);
-let isRunning = false; // Flag to prevent overlapping executions
-const schedulerFrequesncy = "0 */2 * * * *"; // Every 5 min (for testing, adjust as needed for production)
 
+// const schedulerFrequesncy = "0 */2 * * * *"; // Every 2 min (for testing, adjust as needed for production)
+const schedulerFrequesncy = "0 * * * *"; // Every Hour at min 0 (for testing, adjust as needed for production)
+
+let isRunning = false; // Flag to prevent overlapping executions
+
+logger.info(
+  `Scheduler Initialized fro ServiceM8-Hubspot successfully Sync-Frequency ${schedulerFrequesncy}`
+);
 cron.schedule(schedulerFrequesncy, async () => {
   // Simultaneously handle both ServiceM8 and Hubspot tasks
   try {
