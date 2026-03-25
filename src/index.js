@@ -39,6 +39,7 @@ import {
   convertAustralianFormat,
   getLastSyncTime,
   saveLastSyncTime,
+  needsUpdate,
 } from "./utils/helper.util.js"; // Helper functions
 
 // ------------------------------------------------Hubspot Services-----------------------------------------
@@ -48,6 +49,7 @@ import {
 } from "./services/hubspot.service.js"; // Hubspot Services
 
 export {
+  needsUpdate,
   taskMappingSM8ToHS,
   getLastSyncTime,
   saveLastSyncTime,

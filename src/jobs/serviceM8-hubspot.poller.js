@@ -9,6 +9,8 @@ import {
   syncServiceM8NoteToHubSpotAsActivity,
   // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
   syncServiceM8ClientToHubSpotAsCompany,
+  // ✅ Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
+  syncServiceM8JobChecklistToHubSpotAsTasks,
 } from "../services/serviceM8.service.js";
 logger.info(`Scheduler Initialized fro ServiceM8-Hubspot successfully...`);
 let isRunning = false; // Flag to prevent overlapping executions
@@ -28,6 +30,7 @@ cron.schedule(schedulerFrequesncy, async () => {
     // await syncServiceM8ClientToHubSpotAsCompany();
     await syncServiceM8JobToHubSpotAsDeal();
     await syncServiceM8NoteToHubSpotAsActivity();
+    await syncServiceM8JobChecklistToHubSpotAsTasks();
     // ]);
   } catch (error) {
     logger.error("❌ Critical startup failure:", {

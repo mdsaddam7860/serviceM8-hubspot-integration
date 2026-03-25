@@ -11,19 +11,22 @@ import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 // Apply save synclasTime logic in Scheduler
 
 // ------------------------------ Node Cron Schedulers------------------------------------
-// import "./src/jobs/serviceM8-hubspot.poller.js";
-// import "./src/jobs/hubspot-serviceM8.poller.js";
-import {
-  syncHubspotCompanyToServiceM8Client,
-  processBatchCompanyInHubspot,
-  processBatchDealInHubspot,
-  processBatchActivityInHubspot,
-  processBatchTasksInHubspot,
-} from "./src/services/hubspot.service.js";
-import {
-  syncServiceM8JobToHubSpotAsDeal,
-  syncServiceM8JobChecklistToHubSpotAsTasks,
-} from "./src/services/serviceM8.service.js";
+import "./src/jobs/serviceM8-hubspot.poller.js";
+import "./src/jobs/hubspot-serviceM8.poller.js";
+// import {
+//   syncHubspotCompanyToServiceM8Client,
+//   processBatchCompanyInHubspot,
+//   processBatchDealInHubspot,
+//   processBatchActivityInHubspot,
+//   processBatchTasksInHubspot,
+// } from "./src/services/hubspot.service.js";
+// import {
+//   syncServiceM8JobToHubSpotAsDeal,
+//   syncServiceM8JobChecklistToHubSpotAsTasks,
+//   processBatchDealInServiceM8,
+//   processBatchCompanyInServiceM8,
+//   processBatchContactInServiceM8,
+// } from "./src/services/serviceM8.service.js";
 
 // ------------------------------- Node Server--------------------------------------------
 const PORT = process.env.PORT || 5000;
@@ -44,7 +47,6 @@ function serverInitialize() {
 }
 
 serverInitialize();
-processBatchTasksInHubspot();
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client

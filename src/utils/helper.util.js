@@ -182,7 +182,49 @@ function taskClient() {
   return task_client;
 }
 
+/**
+ * universal-needs-update.js
+ * Compares a local payload against a HubSpot record to prevent redundant API calls.
+ */
+function needsUpdate(payload, existingRecord, objectType = "Object") {
+  if (!existingRecord || !existingRecord.properties) return true;
+
+  const newProps = payload?.properties || payload || {};
+  const oldProps = existingRecord.properties;
+
+  const changes = Object.keys(newProps).filter((key) => {
+    const newVal = newProps[key];
+    const oldVal = oldProps[key];
+
+    // Normalize values to strings for comparison
+    // HubSpot returns null/undefined/empty string differently depending on the property type
+    const normalizedNew =
+      newVal === null || newVal === undefined ? "" : String(newVal).trim();
+    const normalizedOld =
+      oldVal === null || oldVal === undefined ? "" : String(oldVal).trim();
+
+    // Special logic for Dates (HubSpot timestamps can vary in precision)
+    if (key.endsWith("_date") || key.includes("timestamp")) {
+      const d1 = Date.parse(normalizedNew);
+      const d2 = Date.parse(normalizedOld);
+      if (!isNaN(d1) && !isNaN(d2)) return d1 !== d2;
+    }
+
+    return normalizedNew !== normalizedOld;
+  });
+
+  if (changes.length > 0) {
+    console.info(
+      `[Idempotency] ${objectType} change detected in: ${changes.join(", ")}`
+    );
+    return true;
+  }
+
+  return false;
+}
+
 export {
+  needsUpdate,
   convertAustralianFormat,
   companyProperties,
   delta,

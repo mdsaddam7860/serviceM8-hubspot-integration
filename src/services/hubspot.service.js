@@ -10,6 +10,7 @@ import {
   getLastSyncTime,
   saveLastSyncTime,
   taskMappingSM8ToHS,
+  needsUpdate,
 } from "../index.js";
 import { getHubspotClient, getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, serviceM8Executor } from "../utils/executors.js";
@@ -533,17 +534,20 @@ async function upsertDealInHubspot(record) {
     }
 
     if (existingDeal) {
-      logger.info(
-        `[HUBSPOT DEAL] Deal already exists: ${JSON.stringify(
-          existingDeal,
-          null,
-          2
-        )}`
-      );
-      // TODO if Deal alrady exists in HUbspot then first check if the deal needs to be updated(Idempotency check)
+      logger.info(`[HUBSPOT DEAL] Deal already exists: ${existingDeal.id}`);
 
-      // Update Deal
-      return await hs_client.deals.updateDeal(existingDeal?.id, payload);
+      // Check if an update is actually necessary
+      if (needsUpdate(payload, existingDeal)) {
+        logger.info(
+          `[HUBSPOT DEAL] Proceeding with update for Deal ID: ${existingDeal.id}`
+        );
+        return await hs_client.deals.updateDeal(existingDeal?.id, payload);
+      } else {
+        logger.info(
+          `[HUBSPOT DEAL] Idempotency Check: No changes detected. Skipping update.`
+        );
+        return existingDeal; // Return the existing record without API call
+      }
     } else {
       // create  Deal
       return await hs_client.deals.createDeal(payload);
@@ -2217,17 +2221,40 @@ function filterTechnicianAddedTasks(records = []) {
 }
 async function processBatchTasksInHubspot(
   taskRecords = [
+    // {
+    //   edit_date: "2025-08-07 20:38:07",
+    //   active: 1,
+    //   job_uuid: "c255f31c-87e5-46d8-b358-231841e4162b",
+    //   name: "Take photo of chlorine chute being topped up",
+    //   item_type: "Photo",
+    //   sort_order: 5010,
+    //   completed_timestamp: "0000-00-00 00:00:00",
+    //   completed_by_staff_uuid: "",
+    //   completed_during_checkin_uuid: "",
+    //   section_name: "Photos",
+    //   regarding_object: "",
+    //   regarding_object_uuid: "",
+    //   fulfilled_by_object_name: "",
+    //   fulfilled_by_object_uuid: "",
+    //   is_locked: "0",
+    //   reminder_type: "",
+    //   assigned_by_staff_uuid: "",
+    //   assigned_timestamp: "0000-00-00 00:00:00",
+    //   uuid: "0000053e-a79a-47c8-9bba-231848439eab",
+    //   reminder_data: [],
+    //   assigned_to_staff_uuids: false,
+    // },
     {
-      edit_date: "2025-08-07 20:38:07",
+      edit_date: "2024-05-13 14:59:28",
       active: 1,
-      job_uuid: "c255f31c-87e5-46d8-b358-231841e4162b",
-      name: "Take photo of chlorine chute being topped up",
+      job_uuid: "67f65853-79f9-436d-aa1e-20e3bfd548cb",
+      name: "Take photo of tree roots (if applicable)",
       item_type: "Photo",
-      sort_order: 5010,
+      sort_order: 11,
       completed_timestamp: "0000-00-00 00:00:00",
       completed_by_staff_uuid: "",
       completed_during_checkin_uuid: "",
-      section_name: "Photos",
+      section_name: "",
       regarding_object: "",
       regarding_object_uuid: "",
       fulfilled_by_object_name: "",
@@ -2236,7 +2263,7 @@ async function processBatchTasksInHubspot(
       reminder_type: "",
       assigned_by_staff_uuid: "",
       assigned_timestamp: "0000-00-00 00:00:00",
-      uuid: "0000053e-a79a-47c8-9bba-231848439eab",
+      uuid: "0001ef46-1c41-4ff9-aa52-20e3b73cdf2b",
       reminder_data: [],
       assigned_to_staff_uuids: false,
     },
@@ -2302,7 +2329,7 @@ async function processSingleTasksInHubspot(record, client) {
       return;
     }
     // Upsert task with idempotency
-    const upsertTask = upsertTaskResult.valuue;
+    const upsertTask = upsertTaskResult.value;
     // Fetch job from servicem8 using job_uuid and uosert deal in hubspot to ensure data integrity
     logger.info(`Upserted Task : ${JSON.stringify(upsertTask, null, 2)}`);
 
@@ -2358,6 +2385,10 @@ async function upsertTaskInHubspot(record) {
   try {
     const task = taskClient();
     const payload = taskMappingSM8ToHS(record);
+    logger.info(`payload: ${JSON.stringify(payload, null, 2)}`);
+
+    // const taskCreated = await task.create(payload);
+    // logger.info(`Created Task: ${JSON.stringify(taskCreated, null, 2)}`);
 
     return await task.create(payload);
     // Upsert Task with idempotency

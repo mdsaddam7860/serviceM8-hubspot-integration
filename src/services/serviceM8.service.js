@@ -37,9 +37,9 @@ const JOB_CATEGORY_UUID = Object.freeze({
    *  S - Maintenance          b4150a2b-1114-49b0-bbc5-23e7c61e2f7b
    */
   "84655c31-55d7-4509-8681-20156066eeab": "I - Council Application",
+  "9f41bb38-b426-477c-bc58-20c454051fab": "I - Supply Only",
   "3f20f466-f849-4bfa-ab52-23e6fe361feb": "I - Emma Quote",
   "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b": "I - Nick Quote",
-  "9f41bb38-b426-477c-bc58-20c454051fab": "I - Supply Only",
   "ec7ccf61-b811-459c-b006-22f3866d35fb": "M-Contractor",
   "f4460be7-395d-42ca-a465-22f384e3a8fb": "M-Maintenance",
   "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b": "S-Maintence",
@@ -397,8 +397,8 @@ async function syncServiceM8JobChecklistToHubSpotAsTasks() {
     const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
     logger.info(`Getting records : ${formattedDate}`);
 
-    const endpoint = `jobchecklist.json`;
-    // const endpoint = `jobchecklist.json?$filter=edit_date gt '${formattedDate}'`;
+    // const endpoint = `jobchecklist.json`;
+    const endpoint = `jobchecklist.json?$filter=edit_date gt '${formattedDate}'`;
 
     const jobStream = serviceM8Generator(endpoint);
 
