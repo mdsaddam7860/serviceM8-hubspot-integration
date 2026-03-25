@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
+import { getHubspotClient } from "../configs/hubspot.config.js";
 function delta() {
   const date = new Date();
-  date.setDate(date.getDate() - 2);
+  // date.setDate(date.getDate() - 2);
+  date.setDate(date.getDate() - 1);
 
   const previousDate = date.toISOString().split("T")[0];
   return previousDate;
@@ -126,14 +128,19 @@ function getLastSyncTime() {
   const oneHourAgo = new Date();
   oneHourAgo.setHours(oneHourAgo.getHours() - 1);
   return oneHourAgo.toISOString();
+
+  // TODO : Change delta to 1 Hour
+  // const fifteenMinsAgo = new Date();
+  // fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 15);
+  // return fifteenMinsAgo.toISOString();
 }
 
 /**
  * Saves the current ISO date/time to the file.
  */
-function saveLastSyncTime() {
+function saveLastSyncTime(date) {
   const syncData = {
-    lastSync: new Date().toISOString(),
+    lastSync: date,
   };
 
   try {
@@ -165,7 +172,77 @@ function convertAustralianFormat(phone) {
   return cleaned;
 }
 
+let task_client = null;
+
+function taskClient() {
+  if (task_client) return task_client;
+
+  const client = getHubspotClient();
+
+  task_client = client.customObject("tasks");
+
+  return task_client;
+}
+
+/**
+ * universal-needs-update.js
+ * Compares a local payload against a HubSpot record to prevent redundant API calls.
+ */
+function needsUpdate(payload, existingRecord, objectType = "Object") {
+  if (!existingRecord || !existingRecord.properties) return true;
+
+  const newProps = payload?.properties || payload || {};
+  const oldProps = existingRecord.properties;
+
+  const changes = Object.keys(newProps).filter((key) => {
+    const newVal = newProps[key];
+    const oldVal = oldProps[key];
+
+    // Normalize values to strings for comparison
+    // HubSpot returns null/undefined/empty string differently depending on the property type
+    const normalizedNew =
+      newVal === null || newVal === undefined ? "" : String(newVal).trim();
+    const normalizedOld =
+      oldVal === null || oldVal === undefined ? "" : String(oldVal).trim();
+
+    // Special logic for Dates (HubSpot timestamps can vary in precision)
+    if (key.endsWith("_date") || key.includes("timestamp")) {
+      const d1 = Date.parse(normalizedNew);
+      const d2 = Date.parse(normalizedOld);
+      if (!isNaN(d1) && !isNaN(d2)) return d1 !== d2;
+    }
+
+    return normalizedNew !== normalizedOld;
+  });
+
+  if (changes.length > 0) {
+    console.info(
+      `[Idempotency] ${objectType} change detected in: ${changes.join(", ")}`
+    );
+    return true;
+  }
+
+  return false;
+}
+
+function taskProperties() {
+  return [
+    "hs_object_id",
+    "service_m8_uuid",
+    "hs_task_subject",
+    "hs_task_status",
+    "hs_task_reminders",
+    "hs_task_recurrence",
+    "hs_repeat_status",
+    "hs_task_repeat_interval",
+    "hs_repeat_status",
+    "hs_task_repeat_interval",
+  ];
+}
+
 export {
+  taskProperties,
+  needsUpdate,
   convertAustralianFormat,
   companyProperties,
   delta,
@@ -175,4 +252,5 @@ export {
   cleanProps,
   getLastSyncTime,
   saveLastSyncTime,
+  taskClient,
 };

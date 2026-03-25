@@ -55,7 +55,7 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
 
     // --- Timestamps ---
     quote_sent_stamp: record.quote_sent_timestamp_service_m8,
-    invoice_sent_stamp: record.invoice_sent_timestamp_service_m8,
+    // invoice_sent_stamp: record.invoice_sent_timestamp_service_m8,
     payment_received_stamp: record.payment_received_timestamp_service_m8,
     unsuccessful_date: record.job_unsuccessful_date_service_m8,
     completion_date: record.completion_date_service_m8,

@@ -13,6 +13,7 @@ import {
   contactProperties,
   jobContactMappingHSTOSM8,
   dealProperties,
+  getLastSyncTime,
 } from "../index.js";
 // -----------------------------------Hubspot Service -----------------------------------------
 import {
@@ -22,7 +23,16 @@ import {
   processBatchActivityInHubspot,
   processBatchCompanyInHubspot,
   fetchHubSpotAssociationIds,
+  processBatchTasksInHubspot,
 } from "./hubspot.service.js";
+
+const SECURITY_ROLES = Object.freeze({
+  //Service Technician
+  "28c8be89-e90b-46c9-a914-235034c9335b": "Service Technician",
+
+  // Contractor
+  "0f4ec4f8-4976-4119-8d93-22de0c640e7b": "Contractor",
+});
 
 const JOB_CATEGORY_UUID = Object.freeze({
   /**!SECTION
@@ -35,9 +45,9 @@ const JOB_CATEGORY_UUID = Object.freeze({
    *  S - Maintenance          b4150a2b-1114-49b0-bbc5-23e7c61e2f7b
    */
   "84655c31-55d7-4509-8681-20156066eeab": "I - Council Application",
+  "9f41bb38-b426-477c-bc58-20c454051fab": "I - Supply Only",
   "3f20f466-f849-4bfa-ab52-23e6fe361feb": "I - Emma Quote",
   "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b": "I - Nick Quote",
-  "9f41bb38-b426-477c-bc58-20c454051fab": "I - Supply Only",
   "ec7ccf61-b811-459c-b006-22f3866d35fb": "M-Contractor",
   "f4460be7-395d-42ca-a465-22f384e3a8fb": "M-Maintenance",
   "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b": "S-Maintence",
@@ -103,6 +113,7 @@ async function fetchAllServiceM8Records(endpoint) {
       method: error.config?.method,
       url: error.config?.url,
       headers: error.config?.headers,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -169,6 +180,7 @@ async function* serviceM8Generator(
       method: error.config?.method,
       url: error.config?.url,
       headers: error.config?.headers,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -251,10 +263,13 @@ async function syncServiceM8ClientToHubSpotAsContact() {
   try {
     const endpoint = "company.json";
 
-    const previousDate = delta();
-    logger.info(`Getting records after: ${previousDate}`);
+    const lastSyncISO = getLastSyncTime();
+
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
     const companyStream = serviceM8Generator(
-      `${endpoint}?$filter=edit_date gt ${previousDate} and is_individual eq 1`
+      `${endpoint}?$filter=edit_date gt '${formattedDate}' and is_individual eq 1`
     );
 
     for await (const { records, stats } of companyStream) {
@@ -267,7 +282,7 @@ async function syncServiceM8ClientToHubSpotAsContact() {
       });
     }
 
-    // logger.info("✅ Full sync successful.");
+    logger.info(`[ServiceM8] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error(`❌ Full sync failed.`, {
       status: error?.status,
@@ -282,24 +297,27 @@ async function syncServiceM8ClientToHubSpotAsContact() {
 // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
 async function syncServiceM8ClientToHubSpotAsCompany() {
   try {
-    const previousDate = delta();
-    logger.info(`Getting records after: ${previousDate}`);
+    const lastSyncISO = getLastSyncTime();
+
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
     const companyStream = serviceM8Generator(
-      `${clientEndpoint}?$filter=edit_date gt ${previousDate} and is_individual eq 0`
+      `${clientEndpoint}?$filter=edit_date gt '${formattedDate}' and is_individual eq 0`
     );
 
     for await (const { records, stats } of companyStream) {
       // Process Company in batch here
       await processBatchCompanyInHubspot(records);
 
-      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+      logger.info(`[ServiceM8 Progress] ${clientEndpoint}`, {
         page: stats.page,
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
     }
 
-    // logger.info("✅ Full sync successful.");
+    logger.info(`[ServiceM8] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error(`❌ Full sync failed.`, {
       status: error?.status,
@@ -314,10 +332,12 @@ async function syncServiceM8ClientToHubSpotAsCompany() {
 // ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
 async function syncServiceM8JobToHubSpotAsDeal() {
   try {
-    const previousDate = delta();
-    logger.info(`Getting records : ${previousDate}`);
+    const lastSyncISO = getLastSyncTime();
 
-    const endpoint = `job.json?$filter=date eq ${previousDate}`;
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
+    const endpoint = `job.json?$filter=edit_date eq '${formattedDate}'`;
     // const endpoint = `job.json`;
 
     const jobStream = serviceM8Generator(endpoint);
@@ -332,7 +352,7 @@ async function syncServiceM8JobToHubSpotAsDeal() {
       });
     }
 
-    // logger.info("✅ Full sync successful.");
+    logger.info(`[ServiceM8] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error(`❌ Full sync failed.`, {
       status: error?.status,
@@ -348,10 +368,12 @@ async function syncServiceM8JobToHubSpotAsDeal() {
 // ✅ Fetch Note from serviceM8 and sync to Hubspot as Activity
 async function syncServiceM8NoteToHubSpotAsActivity() {
   try {
-    const previousDay = delta();
-    logger.info(`Getting records after : ${previousDay}`);
+    const lastSyncISO = getLastSyncTime();
 
-    const endpoint = `note.json?$filter=edit_date gt ${previousDay}`;
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
+    const endpoint = `note.json?$filter=edit_date gt '${formattedDate}'`;
 
     const jobStream = serviceM8Generator(endpoint);
 
@@ -365,7 +387,45 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
       });
     }
 
-    logger.info("✅ Full sync successful.");
+    logger.info(`[ServiceM8] Generator Completed for ${endpoint}`);
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+// ✅ Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
+async function syncServiceM8JobChecklistToHubSpotAsTasks() {
+  try {
+    const lastSyncISO = getLastSyncTime();
+
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
+
+    // const endpoint = `jobchecklist.json`;
+    const endpoint = `jobchecklist.json?$filter=edit_date gt '${formattedDate}'`;
+
+    const jobStream = serviceM8Generator(endpoint);
+
+    for await (const { records, stats } of jobStream) {
+      logger.info(
+        `Processing a batch of ${records.length} records & endpoint ${endpoint}`
+      );
+      await processBatchTasksInHubspot(records);
+
+      logger.info(`[ServiceM8 Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+    }
+
+    logger.info(`[ServiceM8] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error(`❌ Full sync failed.`, {
       status: error?.status,
@@ -433,7 +493,9 @@ async function searchInServiceM8(endpoint, uuid) {
   try {
     const serviceM8client = getServiceM8Client();
     const response = await serviceM8client.get(query);
-    logger.info(`Fetched ${query} : ${JSON.stringify(response.data, null, 2)}`);
+    logger.info(
+      `[ServiceM8] Fetched ${query} : ${JSON.stringify(response.data, null, 2)}`
+    );
     return response.data;
   } catch (error) {
     logger.error(`❌ failed to fetch ${query}:${uuid}`, {
@@ -512,7 +574,7 @@ async function searchInServiceM8UsingCustomField(
     return response.data || null; // Return the first match or null if no matches
   } catch (error) {
     logger.error(
-      `❌ failed to fetch ${query} : ${customFieldValue} : ${customField}`,
+      `❌ failed to fetch ${query} : ${customField} : ${customValue}`,
       {
         status: error?.response?.status,
         response: error?.response?.data,
@@ -573,39 +635,39 @@ async function upsertjobInServiceM8(record = {}) {
 
 async function processBatchDealInServiceM8(
   records = [
-    // {
-    //   id: "250551372279",
-    //   properties: {
-    //     amount: "22725.55",
-    //     billing_address_service_m8: null,
-    //     completion_date_service_m8: null,
-    //     createdate: "2026-02-23T02:15:27.243Z",
-    //     dealname: "42184 Tallon Dev",
-    //     dealstage: "2114542054",
-    //     generated_job_id_service_m8: null,
-    //     hs_lastmodifieddate: "2026-03-02T22:04:03.967Z",
-    //     hs_object_id: "250551372279",
-    //     invoice_sent_service_m8: null,
-    //     invoice_sent_timestamp_service_m8: null,
-    //     job_address_service_m8: null,
-    //     job_description_service_m: null,
-    //     job_status_servicem8: "Completed",
-    //     job_unsuccessful_date_service_m8: null,
-    //     job_uuid_service_m8: null,
-    //     payment_received_service_m8: null,
-    //     payment_received_timestamp_service_m8: null,
-    //     pipeline: "default",
-    //     purchase_order_number_service_m8: null,
-    //     quote_sent_service_m8: null,
-    //     quote_sent_timestamp_service_m8: null,
-    //     sourceid: null,
-    //     work_order_date_service_m8: null,
-    //   },
-    //   createdAt: "2026-02-23T02:15:27.243Z",
-    //   updatedAt: "2026-03-02T22:04:03.967Z",
-    //   archived: false,
-    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-3/250551372279",
-    // },
+    {
+      id: "250551372279",
+      properties: {
+        amount: "22725.55",
+        billing_address_service_m8: null,
+        completion_date_service_m8: null,
+        createdate: "2026-02-23T02:15:27.243Z",
+        dealname: "42184 Tallon Dev",
+        dealstage: "2114542054",
+        generated_job_id_service_m8: null,
+        hs_lastmodifieddate: "2026-03-02T22:04:03.967Z",
+        hs_object_id: "250551372279",
+        invoice_sent_service_m8: null,
+        invoice_sent_timestamp_service_m8: null,
+        job_address_service_m8: null,
+        job_description_service_m: null,
+        job_status_servicem8: "Completed",
+        job_unsuccessful_date_service_m8: null,
+        job_uuid_service_m8: null,
+        payment_received_service_m8: null,
+        payment_received_timestamp_service_m8: null,
+        pipeline: "default",
+        purchase_order_number_service_m8: null,
+        quote_sent_service_m8: null,
+        quote_sent_timestamp_service_m8: null,
+        sourceid: null,
+        work_order_date_service_m8: null,
+      },
+      createdAt: "2026-02-23T02:15:27.243Z",
+      updatedAt: "2026-03-02T22:04:03.967Z",
+      archived: false,
+      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-3/250551372279",
+    },
     // {
     //   id: "256557081081",
     //   properties: {
@@ -642,48 +704,9 @@ async function processBatchDealInServiceM8(
   ]
 ) {
   try {
+    const recordLength = records.length;
     for (const [index, record] of records.entries()) {
-      logger.info(
-        `Processing at index - ${index} : record ${JSON.stringify(
-          record,
-          null,
-          2
-        )}`
-      );
-
-      if (!record?.properties?.job_status_servicem8) {
-        logger.warn(
-          `No status found for record : ${JSON.stringify(record)}. Skipping...`
-        );
-        continue;
-      }
-
-      const [upsertJobResult, contactResult] = await Promise.allSettled([
-        upsertjobInServiceM8(record),
-        fetchHubSpotAssociationIds("deals", "contacts", record?.id),
-      ]);
-
-      // 3. Defensive Status Checking
-      if (upsertJobResult.status === "rejected") {
-        logger.error(
-          `❌ Job upsert failed for ${record?.id}: ${upsertJobResult.reason}`
-        );
-        continue;
-      }
-
-      const upsertJob = upsertJobResult.value;
-      const associated_contact_ids =
-        contactResult.status === "fulfilled" ? contactResult.value : [];
-
-      if (!upsertJob) {
-        logger.warn(`Could not upsert job for ${record?.id}`);
-        continue;
-      }
-
-      // 4. Process Contacts (With individual error boundaries)
-      if (associated_contact_ids.length > 0) {
-        await processAssociatedContacts(associated_contact_ids, upsertJob);
-      }
+      await processSingleJobInServiceM8(record, index, recordLength);
     }
   } catch (error) {
     logger.error("❌ Error processing Deal in Batch", {
@@ -693,6 +716,63 @@ async function processBatchDealInServiceM8(
       url: error?.config?.url,
       headers: error?.config?.headers,
     });
+  }
+}
+
+async function processSingleJobInServiceM8(record, index, recordLength) {
+  try {
+    logger.info(
+      `Processing at index - ${
+        index + 1
+      }/${recordLength} : [Hubspot Deal] : ${JSON.stringify(record, null, 2)}`
+    );
+
+    if (!record?.properties?.job_status_servicem8) {
+      logger.warn(
+        `No status found for record : ${JSON.stringify(record)}. Skipping...`
+      );
+      return;
+    }
+
+    const [upsertJobResult, contactResult] = await Promise.allSettled([
+      upsertjobInServiceM8(record),
+      fetchHubSpotAssociationIds("deals", "contacts", record?.id),
+    ]);
+
+    // 3. Defensive Status Checking
+    if (upsertJobResult.status === "rejected") {
+      logger.error(
+        `❌ Job upsert failed for ${record?.id}: ${upsertJobResult.reason}`
+      );
+      return;
+    }
+
+    const upsertJob = upsertJobResult.value;
+    const associated_contact_ids =
+      contactResult.status === "fulfilled" ? contactResult.value : [];
+
+    if (!upsertJob) {
+      logger.warn(`Could not upsert job for ${record?.id}`);
+      return;
+    }
+
+    // 4. Process Contacts (With individual error boundaries)
+    if (associated_contact_ids.length > 0) {
+      await processAssociatedContacts(associated_contact_ids, upsertJob);
+    }
+  } catch (error) {
+    logger.error(
+      `[ServiceM8] Error processing job [processSingleJobInServiceM8] ${JSON.stringify(
+        record
+      )}`,
+      {
+        status: error?.response?.status,
+        response: error?.response?.data,
+        method: error?.config?.method,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+      }
+    );
   }
 }
 
@@ -719,8 +799,11 @@ async function processAssociatedContacts(contactIds, upsertJob) {
         return upsertjobcontact;
       } catch (error) {
         logger.error(`❌ Error processing contact ${contactId}`, {
-          message: error.message,
+          message: error?.message,
           jobId: upsertJob?.id,
+          status: error?.response?.status,
+          stack: error?.stack,
+          response: error?.response?.data,
         });
       }
     })
@@ -762,6 +845,7 @@ async function upsertContactInServiceM8(record) {
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -801,13 +885,13 @@ async function upsertCompanyContactInServiceM8(record = {}, company_uuid) {
     }
 
     if (!payload) {
-      logger.warn(`Payload not found for ${JSON.stringify(record, null, 2)}`);
+      logger.warn(`Payload not found for ${JSON.stringify(record)}`);
       return;
     }
 
     const serviceM8client = getServiceM8Client();
 
-    logger.info(`Payload : ${JSON.stringify(payload, null, 2)}`);
+    logger.info(`Payload : ${JSON.stringify(payload)}`);
 
     const response = await serviceM8Executor(
       () => serviceM8client.post("companycontact.json", payload),
@@ -815,6 +899,10 @@ async function upsertCompanyContactInServiceM8(record = {}, company_uuid) {
     );
     // logger.info(`Upsert CompanyContact : ${JSON.stringify(response.data, null, 2)}`);
     // console.log("response", response);
+
+    if (response?.data?.message === "OK") {
+      return response.headers["x-record-uuid"];
+    }
 
     return response.data;
   } catch (error) {
@@ -824,6 +912,7 @@ async function upsertCompanyContactInServiceM8(record = {}, company_uuid) {
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -884,6 +973,7 @@ async function upsertJobContactInServiceM8(record = {}, job_uuid) {
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -927,6 +1017,7 @@ async function upsertCompanyInServiceM8(record) {
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -959,86 +1050,41 @@ async function processBatchContactInServiceM8(
     //   archived: false,
     //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
     // },
-    // {
-    //   id: "299134413246",
-    //   properties: {
-    //     createdate: "2026-02-17T09:27:10.691Z",
-    //     email: "johnny@test.com",
-    //     firstname: "Test ",
-    //     hs_object_id: "299134413246",
-    //     lastmodifieddate: "2026-03-03T15:30:52.738Z",
-    //     lastname: "Contact",
-    //   },
-    //   createdAt: "2026-02-17T09:27:10.691Z",
-    //   updatedAt: "2026-03-03T15:30:52.738Z",
-    //   archived: false,
-    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-1/299134413246",
-    // },
+    {
+      id: "299134413246",
+      properties: {
+        createdate: "2026-02-17T09:27:10.691Z",
+        email: "johnny@test.com",
+        firstname: "Test ",
+        hs_object_id: "299134413246",
+        lastmodifieddate: "2026-03-03T15:30:52.738Z",
+        lastname: "Contact",
+      },
+      createdAt: "2026-02-17T09:27:10.691Z",
+      updatedAt: "2026-03-03T15:30:52.738Z",
+      archived: false,
+      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-1/299134413246",
+    },
   ]
 ) {
   try {
+    const recordLength = records.length;
     for (const [index, record] of records.entries()) {
-      logger.info(
-        `Processing at index  ${index} : ${JSON.stringify(record, null, 2)}`
-      );
-
-      const [upsertClientResult, contactResult] = await Promise.allSettled([
-        upsertContactInServiceM8(record),
-        // fetchHubSpotAssociationIds("contacts", "contacts", record?.id),
-      ]);
-
-      const upsertClient =
-        upsertClientResult.status === "fulfilled"
-          ? upsertClientResult.value
-          : null;
-      logger.info(
-        `Upserted Company UUID : ${JSON.stringify(upsertClient, null, 2)}`
-      );
-      // 2. Guard: Handle HubSpot Upsert Failure
-      // if (!upsertClient?.id) {
-      //   logger.error(`❌ Skipped: Could not upsert Contact for ${record.uuid}`);
-      //   continue;
-      // }
-      // const associated_contact_ids =
-      //   contactResult.status === "fulfilled" ? contactResult.value : null;
-      // logger.info(
-      //   `Upserted Company UUID : ${JSON.stringify(upsertClient, null, 2)}`
-      // );
-
-      // await Promise.allSettled(
-      //   associated_contact_ids.map(async (contactId) => {
-      //     try {
-      //       const contactDetails = await fetchHubSpotObject(
-      //         "contacts",
-      //         contactId,
-      //         contactProperties()
-      //       );
-
-      //       logger.info(`contactDetails: ${JSON.stringify(contactDetails)}`);
-
-      //       if (contactDetails) {
-      //         const upsertCompanyContact =
-      //           await upsertCompanyContactInServiceM8(
-      //             contactDetails,
-      //             upsertClient
-      //           );
-      //         logger.info(
-      //           `Upserted CompanyContact: ${JSON.stringify(
-      //             upsertCompanyContact
-      //           )}`
-      //         );
-      //       }
-      //     } catch (error) {
-      //       logger.error(`❌ Error processing CompanyContact in batch`, {
-      //         message: error.message,
-      //         status: error.response?.status,
-      //         data: error.response?.data,
-      //         url: error.config?.url,
-      //         method: error.config?.method,
-      //       });
-      //     }
-      //   })
-      // );
+      try {
+        await processSingleContactInServiceM8(record, index, recordLength);
+      } catch (error) {
+        logger.error(
+          `Error processing Contact in BatchLoop ${processBatchContactInServiceM8}-[ServiceM8]`,
+          {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data,
+            url: error.config?.url,
+            method: error.config?.method,
+            stack: error?.stack || error,
+          }
+        );
+      }
     }
   } catch (error) {
     logger.error(`❌ Error processing Contact in Batch`, {
@@ -1047,9 +1093,94 @@ async function processBatchContactInServiceM8(
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
+      stack: error?.stack || error,
     });
   }
 }
+
+async function processSingleContactInServiceM8(record, index, recordLength) {
+  try {
+    logger.info(
+      `[ServiceM8] Processing at index  ${
+        index + 1
+      }/${recordLength} : [Hubspot Contact] ${JSON.stringify(record)}`
+    );
+
+    const [upsertClientResult, contactResult] = await Promise.allSettled([
+      upsertContactInServiceM8(record),
+      // fetchHubSpotAssociationIds("contacts", "contacts", record?.id),
+    ]);
+
+    const upsertClient =
+      upsertClientResult.status === "fulfilled"
+        ? upsertClientResult.value
+        : null;
+    logger.info(
+      `Upserted Company UUID : ${JSON.stringify(upsertClient, null, 2)}`
+    );
+
+    // 2. Guard: Handle HubSpot Upsert Failure
+    // if (!upsertClient?.id) {
+    //   logger.error(`❌ Skipped: Could not upsert Contact for ${record.uuid}`);
+    //   continue;
+    // }
+    // const associated_contact_ids =
+    //   contactResult.status === "fulfilled" ? contactResult.value : null;
+    // logger.info(
+    //   `Upserted Company UUID : ${JSON.stringify(upsertClient, null, 2)}`
+    // );
+
+    // await Promise.allSettled(
+    //   associated_contact_ids.map(async (contactId) => {
+    //     try {
+    //       const contactDetails = await fetchHubSpotObject(
+    //         "contacts",
+    //         contactId,
+    //         contactProperties()
+    //       );
+
+    //       logger.info(`contactDetails: ${JSON.stringify(contactDetails)}`);
+
+    //       if (contactDetails) {
+    //         const upsertCompanyContact =
+    //           await upsertCompanyContactInServiceM8(
+    //             contactDetails,
+    //             upsertClient
+    //           );
+    //         logger.info(
+    //           `Upserted CompanyContact: ${JSON.stringify(
+    //             upsertCompanyContact
+    //           )}`
+    //         );
+    //       }
+    //     } catch (error) {
+    //       logger.error(`❌ Error processing CompanyContact in batch`, {
+    //         message: error.message,
+    //         status: error.response?.status,
+    //         data: error.response?.data,
+    //         url: error.config?.url,
+    //         method: error.config?.method,
+    //       });
+    //     }
+    //   })
+    // );
+  } catch (error) {
+    logger.error(
+      ` Error processing Contact [processSingleCompanyInServiceM8]-[ServiceM8] ${JSON.stringify(
+        record
+      )}`,
+      {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        stack: error?.stack || error,
+      }
+    );
+  }
+}
+
 // Process Batch Company from Hubspot to Service M8
 async function processBatchCompanyInServiceM8(
   records = [
@@ -1077,139 +1208,244 @@ async function processBatchCompanyInServiceM8(
     //   archived: false,
     //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
     // },
-    // {
-    //   id: "252164202957",
-    //   properties: {
-    //     about_us: null,
-    //     address: null,
-    //     address2: null,
-    //     city: null,
-    //     country: null,
-    //     createdate: "2026-03-03T10:29:36.525Z",
-    //     description: "test company",
-    //     domain: "testcompany.com",
-    //     hs_country_code: null,
-    //     hs_lastmodifieddate: "2026-03-03T11:13:14.281Z",
-    //     hs_object_id: "252164202957",
-    //     name: "Test Company",
-    //     sourceid: null,
-    //     state: null,
-    //     zip: null,
-    //   },
-    //   createdAt: "2026-03-03T10:29:36.525Z",
-    //   updatedAt: "2026-03-03T11:13:14.281Z",
-    //   archived: false,
-    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/252164202957",
-    // },
+    {
+      id: "252164202957",
+      properties: {
+        about_us: null,
+        address: null,
+        address2: null,
+        city: null,
+        country: null,
+        createdate: "2026-03-03T10:29:36.525Z",
+        description: "test company",
+        domain: "testcompany.com",
+        hs_country_code: null,
+        hs_lastmodifieddate: "2026-03-03T11:13:14.281Z",
+        hs_object_id: "252164202957",
+        name: "Test Company",
+        sourceid: null,
+        state: null,
+        zip: null,
+      },
+      createdAt: "2026-03-03T10:29:36.525Z",
+      updatedAt: "2026-03-03T11:13:14.281Z",
+      archived: false,
+      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/252164202957",
+    },
   ]
 ) {
   try {
+    const recordLength = records.length;
     for (const [index, record] of records.entries()) {
-      logger.info(
-        `Processing at index  ${index} : ${JSON.stringify(record, null, 2)}`
-      );
-      const [upsertClientResult, contactResult] = await Promise.allSettled([
-        upsertCompanyInServiceM8(record),
-        fetchHubSpotAssociationIds("companies", "contacts", record?.id),
-      ]);
-
-      if (upsertClientResult.status === "rejected") {
-        logger.warn(
-          `Could  not Upsert Company ${record?.id}: ${JSON.stringify(
-            upsertClientResult.reason,
-            null,
-            2
-          )}`
-        );
-        continue;
-      }
-
-      const upsertClient =
-        upsertClientResult.status === "fulfilled"
-          ? upsertClientResult.value
-          : null;
-
-      const associated_contact_ids =
-        contactResult.status === "fulfilled" ? contactResult.value : null;
-      logger.info(
-        `Upserted Company UUID : ${JSON.stringify(upsertClient, null, 2)}`
-      );
-
-      logger.info(
-        `associated_contact_ids : ${JSON.stringify(associated_contact_ids)}`
-      );
-
-      await Promise.allSettled(
-        associated_contact_ids.map(async (contactId) => {
-          try {
-            const contactDetails = await fetchHubSpotObject(
-              "contacts",
-              contactId,
-              contactProperties()
-            );
-
-            logger.info(`contactDetails: ${JSON.stringify(contactDetails)}`);
-
-            if (contactDetails) {
-              const upsertCompanyContact =
-                await upsertCompanyContactInServiceM8(
-                  contactDetails,
-                  upsertClient
-                );
-              logger.info(
-                `Upserted CompanyContact: ${JSON.stringify(
-                  upsertCompanyContact
-                )}`
-              );
-            }
-          } catch (error) {
-            logger.error(`❌ Error processing CompanyContact in batch`, {
-              message: error.message,
-              status: error.response?.status,
-              data: error.response?.data,
-              url: error.config?.url,
-              method: error.config?.method,
-            });
+      try {
+        await processSingleCompanyInServiceM8(record, index, recordLength);
+      } catch (error) {
+        logger.error(
+          `❌ Error processing Compnay in processBatchCompanyInServiceM8`,
+          {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data,
+            url: error.config?.url,
+            method: error.config?.method,
+            stack: error?.stack || error,
           }
-        })
-      );
+        );
+      }
     }
   } catch (error) {
-    logger.error(`❌ Error processing Compnay in Batch`, {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
-    });
+    logger.error(
+      `❌ Error processing Compnay in processBatchCompanyInServiceM8`,
+      {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        stack: error?.stack || error,
+      }
+    );
   }
 }
 
+async function processSingleCompanyInServiceM8(record, index, recordLength) {
+  try {
+    logger.info(
+      `Processing at index  ${
+        index + 1
+      }/${recordLength} | [Hubspot Company] ${JSON.stringify(record)}`
+    );
+    const [upsertClientResult, contactResult] = await Promise.allSettled([
+      upsertCompanyInServiceM8(record),
+      fetchHubSpotAssociationIds("companies", "contacts", record?.id),
+    ]);
+
+    if (upsertClientResult.status === "rejected") {
+      logger.warn(
+        `Could  not Upsert Company ${record?.id}: ${JSON.stringify(
+          upsertClientResult.reason,
+          null,
+          2
+        )}`
+      );
+      return;
+    }
+
+    const upsertClient =
+      upsertClientResult.status === "fulfilled"
+        ? upsertClientResult.value
+        : null;
+
+    const associated_contact_ids =
+      contactResult.status === "fulfilled" ? contactResult.value : null;
+    logger.info(
+      `Upserted Company UUID : ${JSON.stringify(upsertClient, null, 2)}`
+    );
+
+    logger.info(
+      `associated_contact_ids : ${JSON.stringify(associated_contact_ids)}`
+    );
+
+    await Promise.allSettled(
+      associated_contact_ids.map(async (contactId) => {
+        try {
+          const contactDetails = await fetchHubSpotObject(
+            "contacts",
+            contactId,
+            contactProperties()
+          );
+
+          logger.info(
+            `[Hubspot] contactDetails: ${JSON.stringify(contactDetails)}`
+          );
+
+          if (contactDetails) {
+            const upsertCompanyContact = await upsertCompanyContactInServiceM8(
+              contactDetails,
+              upsertClient
+            );
+            logger.info(
+              `[ServiceM8] Upserted CompanyContact UUID: ${JSON.stringify(
+                upsertCompanyContact
+              )}`
+            );
+          }
+        } catch (error) {
+          logger.error(`Error processing CompanyContact in batch`, {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data,
+            url: error.config?.url,
+            method: error.config?.method,
+            stack: error?.stack || error,
+          });
+        }
+      })
+    );
+  } catch (error) {
+    logger.error(
+      `Error processing Compnay in [processSingleCompanyInServiceM8] | ${JSON.stringify(
+        record
+      )}`,
+      {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        stack: error?.stack || error,
+      }
+    );
+  }
+}
+
+async function ServiceM8ToHubspotSync() {
+  try {
+    await syncServiceM8JobToHubSpotAsDeal();
+    await syncServiceM8NoteToHubSpotAsActivity();
+    await syncServiceM8JobChecklistToHubSpotAsTasks();
+  } catch (error) {
+    logger.error(`❌ Full sync failed.`, {
+      status: error?.status,
+      errorMessage: error?.response?.message || "Unknown",
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      httpError: error?.stack || error,
+    });
+  }
+}
 export {
-  JOB_CATEGORY_UUID,
-  // syncServiceM8CompanyContactToHubSpotAsContact,
-  upsertCompanyContactInServiceM8,
-  upsertContactInServiceM8,
-  upsertCompanyInServiceM8,
-  processBatchCompanyInServiceM8,
-  processBatchContactInServiceM8,
-  searchInServiceM8CustomFiled,
-  processBatchDealInServiceM8,
-  getAllClient,
-  getAllJobs,
-  getAllStaffs,
-  getAllNotes,
-  searchInServiceM8UsingCustomField,
-  syncCompaniesTask,
-  upsertjobInServiceM8,
-  syncServiceM8ToHubSpot,
-  searchInServiceM8,
-  // ✅ Fetch Client from serviceM8 and sync to Hubspot as Contact
+  // ---------------- [ Configuration & Constants ] ----------------
+  SECURITY_ROLES, // Access levels for ServiceM8
+  JOB_CATEGORY_UUID, // Unique identifier for specific Job types
+
+  // ---------------- [ ServiceM8 Write Operations ] ----------------
+  upsertCompanyInServiceM8, // Create or update a Company
+  upsertContactInServiceM8, // Create or update a Contact
+  upsertjobInServiceM8, // Create or update a Job
+  upsertCompanyContactInServiceM8, // Link Contact to Company
+
+  // ---------------- [ ServiceM8 Search & Fetch ] ----------------
+  getAllClient, // Fetch all Client records
+  getAllJobs, // Fetch all Job records
+  getAllStaffs, // Fetch all Staff/Technician records
+  getAllNotes, // Fetch all Activity Notes
+  searchInServiceM8, // General search utility
+  searchInServiceM8UsingCustomField, // Filter by custom field values
+  searchInServiceM8CustomFiled, // (Legacy/Alias) Custom field search
+
+  // ---------------- [ Batch & Orchestration ] ----------------
+  processBatchCompanyInServiceM8, // Bulk process Company syncs
+  processBatchContactInServiceM8, // Bulk process Contact syncs
+  processBatchDealInServiceM8, // Bulk process Deal/Job syncs
+  syncCompaniesTask, // Orchestrate Company task sync
+  syncServiceM8ToHubSpot, // Main entry point for full integration sync
+
+  // ---------------- [ ServiceM8 → HubSpot Sync ] ----------------
+  // Client → Contact
   syncServiceM8ClientToHubSpotAsContact,
-  // ✅ Fetch Job from serviceM8 and sync to Hubspot as Deal
+  // Job → Deal
   syncServiceM8JobToHubSpotAsDeal,
-  // ✅ Fetch Note from serviceM8 and sync to Hubspot as Activity
+  // Note → Activity (Timeline)
   syncServiceM8NoteToHubSpotAsActivity,
-  // ✅ Fetch Client from serviceM8 and sync to Hubspot as Company
+  // Client → Company
   syncServiceM8ClientToHubSpotAsCompany,
+  // Job Checklist → Tasks
+  syncServiceM8JobChecklistToHubSpotAsTasks,
+
+  //--------------------------[ServiceM8 -> hubspot]---------------------
+  ServiceM8ToHubspotSync,
+
+  // SECURITY_ROLES,
+  // JOB_CATEGORY_UUID,
+  // // syncServiceM8CompanyContactToHubSpotAsContact,
+  // upsertCompanyContactInServiceM8,
+  // upsertContactInServiceM8,
+  // upsertCompanyInServiceM8,
+  // processBatchCompanyInServiceM8,
+  // processBatchContactInServiceM8,
+  // searchInServiceM8CustomFiled,
+  // processBatchDealInServiceM8,
+  // getAllClient,
+  // getAllJobs,
+  // getAllStaffs,
+  // getAllNotes,
+  // searchInServiceM8UsingCustomField,
+  // syncCompaniesTask,
+  // upsertjobInServiceM8,
+  // syncServiceM8ToHubSpot,
+  // searchInServiceM8,
+  // ---------------- [ ServiceM8 → HubSpot Sync ] ----------------
+  //[ServiceM8] - Fetch Client from serviceM8 and sync to Hubspot as Contact
+  // syncServiceM8ClientToHubSpotAsContact,
+  //[ServiceM8] - Fetch Job from serviceM8 and sync to Hubspot as Deal
+  // syncServiceM8JobToHubSpotAsDeal,
+  //[ServiceM8] - Fetch Note from serviceM8 and sync to Hubspot as Activity
+  // syncServiceM8NoteToHubSpotAsActivity,
+  //[ServiceM8] - Fetch Client from serviceM8 and sync to Hubspot as Company
+  // syncServiceM8ClientToHubSpotAsCompany,
+  //[ServiceM8] - Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
+  // syncServiceM8JobChecklistToHubSpotAsTasks,
 };
