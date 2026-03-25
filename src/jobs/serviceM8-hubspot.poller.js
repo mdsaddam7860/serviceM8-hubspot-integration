@@ -29,6 +29,8 @@ cron.schedule(schedulerFrequesncy, async () => {
       logger.info(`ServiceM8-Hubspot is already running...`);
       return;
     }
+
+    isRunning = true;
     logger.info("Polling ServiceM8-Hubspot started...");
 
     // await Promise.allSettled([

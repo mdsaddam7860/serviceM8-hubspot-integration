@@ -22,6 +22,7 @@ cron.schedule(schedulerFrequesncy, async () => {
     logger.info(`Hubspot-ServiceM8 is already running...`);
     return;
   }
+  isRunning = true;
   // Simultaneously handle both ServiceM8 and Hubspot tasks
   logger.info("Polling Hubspot-ServiceM8 started...");
   // await Promise.allSettled([
