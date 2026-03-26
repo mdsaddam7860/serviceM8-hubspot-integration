@@ -80,11 +80,12 @@ async function processDealContactAssociation(
         contactInfo
       )} failed to Associate to deal ${upsertDealId}:`,
       {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method,
+        httpStatus: error?.status,
+        response: error?.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        message: error?.message,
+        stack: error?.stack || error,
       }
     );
   }
@@ -343,8 +344,12 @@ async function upsertClientContactInHubspot(record = {}, contactInfo = {}) {
     }
   } catch (error) {
     logger.error("❌ HubSpot CleintContact failed to upsert (outer catch):", {
-      status: error?.response?.status,
-      message: error?.response?.data?.message,
+      httpStatus: error?.status,
+      response: error?.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      message: error?.message,
+      stack: error?.stack || error,
     });
 
     throw error;
@@ -468,9 +473,8 @@ async function upsertContactInHubspot(record = {}, contactInfo = {}) {
       response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error?.message,
-      stack: error?.stack,
+      stack: error?.stack || error,
     });
 
     throw error;
@@ -500,12 +504,12 @@ async function upsertCompanyInHubspot(record, contactInfo) {
     }
   } catch (error) {
     logger.error("❌ HubSpot Company failed to upsert:", {
-      status: error?.status,
-      response: error.response?.data,
+      httpStatus: error?.status,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
-      stack: error?.stack,
+      message: error?.message,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -564,11 +568,12 @@ async function upsertDealInHubspot(record) {
     }
   } catch (error) {
     logger.error("❌ HubSpot Deal failed to upsert:", {
-      status: error?.status,
-      response: error.response?.data,
+      httpStatus: error?.status,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
+      message: error?.message,
+      stack: error?.stack || error,
     });
 
     throw error;
@@ -610,11 +615,12 @@ async function upsertActivityInHubspot(endpoint, record = {}) {
     // }
   } catch (error) {
     logger.error(`"❌ HubSpot Note failed to Create`, {
-      status: error?.status,
-      response: error.response?.data,
+      httpStatus: error?.status,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
+      message: error?.message,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -710,12 +716,12 @@ async function processBatchContactInHubspot(
       }
     } catch (error) {
       logger.error(`❌ Error processing contact ${record?.uuid}:`, {
-        status: error?.status,
-        response: error.response?.data,
+        httpStatus: error?.status,
+        response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
-        stack: error.stack,
+        message: error?.message,
+        stack: error?.stack || error,
       });
     }
   }
@@ -789,12 +795,12 @@ async function processBatchCompanyInHubspot(
       }
     } catch (error) {
       logger.error("❌ Error processing Company:", {
-        status: error?.status,
-        response: error.response?.data,
+        httpStatus: error?.status,
+        response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
-        stack: error.stack,
+        message: error?.message,
+        stack: error?.stack || error,
       });
     }
   }
@@ -843,12 +849,12 @@ async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
         }
       } catch (error) {
         logger.error("❌ Error processing contact:", {
-          status: error?.status,
-          response: error.response?.data,
+          httpStatus: error?.status,
+          response: error?.response?.data,
           method: error?.method,
           url: error?.config?.url,
-          headers: error?.config?.headers,
-          stack: error?.stack,
+          message: error?.message,
+          stack: error?.stack || error,
         });
       }
     })
@@ -915,12 +921,12 @@ async function processAssociatedCompanyContactsInHubspotWithContact(
         }
       } catch (error) {
         logger.error("❌ Error processing contact:", {
-          status: error?.status,
-          response: error.response?.data,
+          httpStatus: error?.status,
+          response: error?.response?.data,
           method: error?.method,
           url: error?.config?.url,
-          headers: error?.config?.headers,
-          stack: error,
+          message: error?.message,
+          stack: error?.stack || error,
         });
       }
     })
@@ -1334,11 +1340,12 @@ async function processBatchDealInHubspot(
       await processSingleDealInHubspot(record, index, filterRecords.length);
     } catch (error) {
       logger.error(`❌ Fatal error processing Job ${record.uuid}:`, {
-        status: error?.status,
-        response: error.response?.data,
+        httpStatus: error?.status,
+        response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
+        message: error?.message,
+        stack: error?.stack || error,
       });
     }
   }
@@ -1414,11 +1421,12 @@ async function processSingleDealInHubspot(record, index, recordSize) {
     return upsertDeal;
   } catch (error) {
     logger.error(`❌ Fatal error processing Deal ${record.uuid}:`, {
-      status: error?.status,
-      response: error.response?.data,
+      httpStatus: error?.status,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
+      message: error?.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -1845,11 +1853,12 @@ async function processBatchActivityInHubspot(
       }
     } catch (error) {
       logger.error(`❌ Error processing Note:${record?.uuid}`, {
-        status: error?.status,
-        response: error.response?.data,
+        httpStatus: error?.status,
+        response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
+        message: error?.message,
+        stack: error?.stack || error,
       });
     }
   }
@@ -1971,9 +1980,8 @@ async function searchInHubspot(
       response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error?.message,
-      stack: error?.stack,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -2018,13 +2026,11 @@ async function syncHubspotDealToServiceM8Job() {
   } catch (error) {
     logger.error("❌ Error processing Deal in Batch", {
       httpStatus: error?.status,
-      message: error.message,
-      data: error.response?.data,
-      url: error.config?.url,
-      headers: error.config?.headers,
-      method: error.config?.method,
-      config: error.config,
-      stack: error,
+      response: error?.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      message: error?.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -2066,12 +2072,12 @@ async function syncHubspotContactToServiceM8Client() {
     logger.info(`[Hubspot] Generator Completed for ${endpoint}`);
   } catch (error) {
     logger.error("❌ Error processing Contacts in Batch", {
-      status: error?.status,
-      response: error.response?.data,
+      httpStatus: error?.status,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
-      message: error.message,
+      message: error?.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -2121,12 +2127,12 @@ async function syncHubspotCompanyToServiceM8Client() {
     logger.error(
       "❌ Error processing Companies in syncHubspotCompanyToServiceM8Client",
       {
-        status: error?.status,
-        response: error.response?.data,
+        httpStatus: error?.status,
+        response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
-        message: error.message,
+        message: error?.message,
+        stack: error?.stack || error,
       }
     );
   }
@@ -2165,11 +2171,11 @@ async function fetchHubSpotAssociationIds(
   } catch (error) {
     logger.error(`❌ Error processing search in Hubspot:getAssociatedIds`, {
       httpStatus: error?.status,
-      response: error.response?.data,
+      response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
-      message: error.message,
+      message: error?.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -2197,9 +2203,8 @@ async function fetchHubSpotObject(object, objectId, properties) {
       response: error?.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error?.message,
-      stack: error?.stack,
+      stack: error?.stack || error,
     });
   }
 }
@@ -2332,11 +2337,10 @@ async function processBatchTasksInHubspot(
         logger.error(
           `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
           {
-            status: error?.status,
+            httpStatus: error?.status,
             response: error?.response?.data,
             method: error?.method,
             url: error?.config?.url,
-            headers: error?.config?.headers,
             message: error?.message,
             stack: error?.stack || error,
           }
@@ -2349,13 +2353,12 @@ async function processBatchTasksInHubspot(
     logger.error(
       `❌ Error processing search in Hubspot:processBatchTasksInHubspot`,
       {
-        status: err?.status,
-        response: err?.response?.data,
-        method: err?.method,
-        url: err?.config?.url,
-        headers: err?.config?.headers,
-        message: err?.message,
-        stack: err?.stack || err,
+        httpStatus: error?.status,
+        response: error?.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        message: error?.message,
+        stack: error?.stack || error,
       }
     );
   }
@@ -2413,13 +2416,12 @@ async function processSingleTasksInHubspot(record, client) {
     logger.error(
       `❌ Error processing search in Hubspot:processSingleTasksInHubspot`,
       {
-        status: error?.status,
+        httpStatus: error?.status,
         response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
         message: error?.message,
-        stack: error?.stack || err,
+        stack: error?.stack || error,
       }
     );
   }
@@ -2455,9 +2457,11 @@ async function upsertTaskInHubspot(record) {
     // Upsert Task with idempotency
   } catch (error) {
     logger.error("❌ HubSpot Task failed to upsert (outer catch):", {
-      status: error?.status,
-      message: error?.message,
+      httpStatus: error?.status,
       response: error?.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      message: error?.message,
       stack: error?.stack || error,
     });
   }
@@ -2472,11 +2476,10 @@ async function HubspotToServiceM8Sync() {
     logger.error(
       `❌ Error processing search in Hubspot:HubspotToServiceM8Sync`,
       {
-        status: error?.status,
+        httpStatus: error?.status,
         response: error?.response?.data,
         method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
         message: error?.message,
         stack: error?.stack || error,
       }
