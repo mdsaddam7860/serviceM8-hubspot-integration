@@ -31,7 +31,7 @@ jobs:
 
           # 1. Navigate to your project directory on the VM
           # CHANGE THIS to your actual path (e.g., /home/ubuntu/mricube-hubspot-integration)
-          cd /home/ubuntu/ServiceM8-Hubspot-Integration/serviceM8-hubspot-integration$
+          cd /home/ubuntu/ServiceM8-Hubspot-Integration/serviceM8-hubspot-integration
 
           # 2. Pull the latest code from your repository
           git pull origin main
