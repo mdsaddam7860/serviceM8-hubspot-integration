@@ -1021,14 +1021,14 @@ async function processBatchDealInHubspot(
 
 async function processSingleDealInHubspot(record, index, recordSize) {
   try {
-    // if (!PIPELINE_CATEGORY[record?.category_uuid]) {
-    //   logger.info(
-    //     `[${index + 1}/${recordSize}] Skipping Job: ${JSON.stringify(
-    //       record
-    //     )} | pipeline Category not found: ${record?.category_uuid} `
-    //   );
-    //   return;
-    // }
+    if (!PIPELINE_CATEGORY[record?.category_uuid]) {
+      logger.info(
+        `[${index + 1}/${recordSize}] Skipping Job: ${JSON.stringify(
+          record
+        )} | pipeline Category not found: ${record?.category_uuid} `
+      );
+      return;
+    }
     logger.info(
       `🚀 [${index + 1}/${recordSize}] Processing Job: ${JSON.stringify(
         record,
