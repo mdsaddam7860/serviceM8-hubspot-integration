@@ -619,54 +619,7 @@ async function upsertActivityInHubspot(endpoint, record = {}) {
     throw error;
   }
 }
-async function processBatchContactInHubspot(
-  records = [
-    // {
-    //   uuid: "9a4b098b-dc6b-4ab9-a452-1cd3ce1d04eb",
-    //   edit_date: "2021-08-17 13:02:29",
-    //   name: "Teresa Stanton",
-    //   website: "",
-    //   abn_number: "",
-    //   address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    //   address_street: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    //   address_city: "",
-    //   address_state: "",
-    //   address_postcode: "",
-    //   address_country: "",
-    //   billing_address: "1 Tudor Court\nDelaneys Creek QLD 4514",
-    //   active: 1,
-    //   is_individual: 1,
-    //   badges: "",
-    //   fax_number: "",
-    //   tax_rate_uuid: "",
-    //   billing_attention: "0",
-    //   payment_terms: "",
-    //   parent_company_uuid: "",
-    // },
-    // {
-    //   uuid: "0041ab17-6f2d-41d6-b74e-238780c9733b",
-    //   edit_date: "2025-11-27 09:39:23",
-    //   name: "Arnold Broese",
-    //   website: "",
-    //   abn_number: "",
-    //   address: "20 Mount Coolum Close\nMaroochy River QLD 4561",
-    //   address_street: "20 Mount Coolum Close\nMaroochy River QLD 4561",
-    //   address_city: "",
-    //   address_state: "",
-    //   address_postcode: "",
-    //   address_country: "",
-    //   billing_address: "20 Mount Coolum Close\nMaroochy River QLD 4561",
-    //   active: 1,
-    //   is_individual: 1,
-    //   badges: '["32c1bf36-c255-4d93-b7f7-22983fa496ab"]',
-    //   fax_number: "",
-    //   tax_rate_uuid: "",
-    //   billing_attention: "0",
-    //   payment_terms: "",
-    //   parent_company_uuid: "",
-    // },
-  ]
-) {
+async function processBatchContactInHubspot(records = []) {
   for (const record of records) {
     try {
       logger.info(`✅ Processing record  ${JSON.stringify(record, null, 2)}`);
@@ -720,32 +673,7 @@ async function processBatchContactInHubspot(
     }
   }
 }
-async function processBatchCompanyInHubspot(
-  records = [
-    {
-      uuid: "9a54bcc5-a35d-4651-8948-1fb1c671ca4b",
-      edit_date: "2026-03-05 22:43:58",
-      name: "Tony and Sam Fischer",
-      website: "",
-      abn_number: "",
-      address: "2 Lyndhurst Terrace,\nCaboolture QLD 4510",
-      address_street: "",
-      address_city: "",
-      address_state: "",
-      address_postcode: "",
-      address_country: "",
-      billing_address: "",
-      active: 1,
-      is_individual: 0,
-      badges: "[]",
-      fax_number: "",
-      tax_rate_uuid: "",
-      billing_attention: "0",
-      payment_terms: "",
-      parent_company_uuid: "",
-    },
-  ]
-) {
+async function processBatchCompanyInHubspot(records = []) {
   for (const record of records) {
     try {
       logger.info(`✅ Processing Company  ${JSON.stringify(record)}`);
@@ -927,72 +855,7 @@ async function processAssociatedCompanyContactsInHubspotWithContact(
   );
 }
 
-async function processBatchDealInHubspot(
-  records = [
-    {
-      uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-      active: 1,
-      date: "2024-08-01 00:00:00",
-      job_address: "252-258 Cedar Grove Road\nCedar Grove QLD 4285",
-      billing_address: "252-258 Cedar Grove Road\nCedar Grove QLD 4285",
-      status: "Completed",
-      quote_date: "2024-08-01 10:06:31",
-      work_order_date: "2024-08-13 18:51:45",
-      work_done_description:
-        "-Confirm if there is existing grass cover in proposed LAA\n-Take pictures of underground delivery line/pipework\n-Check any conditions on plans i.e diversion mounds etc \n-Put 2 x wastewater warning signs up in LAA \n-Test LAA\n-Set sprinkler plumes so as not to exceed 2m total plume if applicable\n-Take pictures of completed LAA\n-make sure customer is happy \n-make sure job is invoiced - contact Teresa to arrange \n-Installation complete",
-      lng: 152.9756887,
-      lat: -27.8609312,
-      generated_job_id: "18243",
-      completion_date: "2024-10-30 13:54:48",
-      completion_actioned_by_uuid: "5f5b74fc-b4e7-4d25-9479-1cd9fb07c74b",
-      unsuccessful_date: "0000-00-00 00:00:00",
-      payment_date: "2024-10-30 00:00:00",
-      payment_method: "Xero",
-      payment_amount: 3500,
-      payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-      edit_date: "2026-01-23 08:14:09",
-      geo_is_valid: 1,
-      payment_note: "",
-      ready_to_invoice: "1",
-      ready_to_invoice_stamp: "2024-10-31 05:54:49",
-      company_uuid: "a74a5bf9-72e7-457d-a137-21a50951bf3b",
-      geo_country: "Australia",
-      geo_postcode: "4285",
-      geo_state: "QLD",
-      geo_city: "Cedar Grove",
-      geo_street: "Cedar Grove Road",
-      geo_number: "252-258",
-      payment_processed: 1,
-      payment_processed_stamp: "2024-10-31 05:42:15",
-      payment_received: 1,
-      payment_received_stamp: "2024-10-30 00:00:00",
-      total_invoice_amount: "3500.0000",
-      job_is_scheduled_until_stamp: "2024-10-30 14:00:00",
-      category_uuid: "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b",
-      queue_uuid: "",
-      queue_expiry_date: "0000-00-00 00:00:00",
-      badges:
-        '["ca775ec4-b7f7-4ecf-83b3-1e36336c53fb","01c7a4c7-1502-4764-b7d4-1e3634a54fcb"]',
-      invoice_sent: true,
-      purchase_order_number: "",
-      invoice_sent_stamp: "2024-10-30 13:55:03",
-      queue_assigned_staff_uuid: "",
-      quote_sent_stamp: "2024-08-05 11:54:09",
-      quote_sent: true,
-      customfield_application_number: "DA-317575",
-      customfield_lot: "2",
-      customfield_plan: "SP168506",
-      active_network_request_uuid: "",
-      customfield_lead_source: "",
-      customfield_xero_tracking_cat_1: "",
-      customfield_xero_tracking_cat_2: "",
-      related_knowledge_articles: false,
-      job_description:
-        "LAA INSTALL ONLY BOOKED 30/10 - NOT CONNECTING THE SAND FILTER FOR NOW. SAND FILTER IS NOT PART OF THE CEA FOR THIS SYSTEM SHOULD NOT BE NEEDED. LAURA IS AWARE \n\n______________\nDATES \n24/10  - PRESITE COMPLETED NICK R \n30/10  - LAA INSTALL BOOKED WITH CUSTOMER \n\n______________\nINSTALL NOTES \nLAA upgrade only \nPermit attached \nStamped plans attached  \n\n______________\nPHONE NUMBERS\nCOAST2COAST - 3282 4341 \nJOPA - ?0417 714 898?\n\n______________\nCONTRACTOR BOOKINGS \n\nEXCAVATIONS - Coast2coast 3.5T pozi combo -BOOKED\nWednesday 30/10 \n\nSAND x 3m3 - JOPA\nBooked 8am Wednesday 30th October \n\nMATERIALS - Reece delivery booked 2pm Tuesday 29/10 \n\nINSPECTION - LAA booked PM Wednesday 30/10 \n\n",
-      created_by_staff_uuid: "2e65a790-64bc-4d05-892c-1cd9f69b454b",
-    },
-  ]
-) {
+async function processBatchDealInHubspot(records = []) {
   // Start the timer for the entire batch execution
   logger.info(`Records length : ${records.length}`);
 

@@ -1,14 +1,4 @@
 import { logger, cleanProps, convertAustralianFormat } from "../index.js";
-import { serviceM8Client } from "../configs/serviceM8.config.js";
-
-/*!SECTION
-"amount": "35012.05",
-    "closedate": null,
-    "createdate": "2025-12-02T06:28:35.710Z",
-    "dealname": "Flourish Homes",
-    "dealstage": "2114542054",
-    "hs_lastmodifieddate": "2026-02-10T05:04:30.527Z"
-*/
 
 /**
  * Maps a ServiceM8 record to a Hubspot record.
@@ -54,9 +44,9 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
     payment_received: record.payment_received_service_m8,
 
     // --- Timestamps ---
-    quote_sent_stamp: record.quote_sent_timestamp_service_m8,
+    // quote_sent_stamp: record.quote_sent_timestamp_service_m8,
     // invoice_sent_stamp: record.invoice_sent_timestamp_service_m8,
-    payment_received_stamp: record.payment_received_timestamp_service_m8,
+    // payment_received_stamp: record.payment_received_timestamp_service_m8,
     unsuccessful_date: record.job_unsuccessful_date_service_m8,
     completion_date: record.completion_date_service_m8,
     work_order_date: record.work_order_date_service_m8,

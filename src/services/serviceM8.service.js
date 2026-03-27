@@ -635,76 +635,7 @@ async function upsertjobInServiceM8(record = {}) {
   }
 }
 
-async function processBatchDealInServiceM8(
-  records = [
-    {
-      id: "250551372279",
-      properties: {
-        amount: "22725.55",
-        billing_address_service_m8: null,
-        completion_date_service_m8: null,
-        createdate: "2026-02-23T02:15:27.243Z",
-        dealname: "42184 Tallon Dev",
-        dealstage: "2114542054",
-        generated_job_id_service_m8: null,
-        hs_lastmodifieddate: "2026-03-02T22:04:03.967Z",
-        hs_object_id: "250551372279",
-        invoice_sent_service_m8: null,
-        invoice_sent_timestamp_service_m8: null,
-        job_address_service_m8: null,
-        job_description_service_m: null,
-        job_status_servicem8: "Completed",
-        job_unsuccessful_date_service_m8: null,
-        job_uuid_service_m8: null,
-        payment_received_service_m8: null,
-        payment_received_timestamp_service_m8: null,
-        pipeline: "default",
-        purchase_order_number_service_m8: null,
-        quote_sent_service_m8: null,
-        quote_sent_timestamp_service_m8: null,
-        sourceid: null,
-        work_order_date_service_m8: null,
-      },
-      createdAt: "2026-02-23T02:15:27.243Z",
-      updatedAt: "2026-03-02T22:04:03.967Z",
-      archived: false,
-      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-3/250551372279",
-    },
-    // {
-    //   id: "256557081081",
-    //   properties: {
-    //     amount: "12",
-    //     billing_address_service_m8: null,
-    //     completion_date_service_m8: null,
-    //     createdate: "2026-03-03T15:13:23.736Z",
-    //     dealname: "Test deal 2",
-    //     dealstage: "2564260296",
-    //     generated_job_id_service_m8: null,
-    //     hs_lastmodifieddate: "2026-03-03T15:14:02.929Z",
-    //     hs_object_id: "256557081081",
-    //     invoice_sent_service_m8: null,
-    //     invoice_sent_timestamp_service_m8: null,
-    //     job_address_service_m8: null,
-    //     job_description_service_m: null,
-    //     job_status_servicem8: "Quote",
-    //     job_unsuccessful_date_service_m8: null,
-    //     job_uuid_service_m8: null,
-    //     payment_received_service_m8: null,
-    //     payment_received_timestamp_service_m8: null,
-    //     pipeline: "default",
-    //     purchase_order_number_service_m8: null,
-    //     quote_sent_service_m8: null,
-    //     quote_sent_timestamp_service_m8: null,
-    //     sourceid: null,
-    //     work_order_date_service_m8: null,
-    //   },
-    //   createdAt: "2026-03-03T15:13:23.736Z",
-    //   updatedAt: "2026-03-03T15:14:02.929Z",
-    //   archived: false,
-    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-3/256557081081",
-    // },
-  ]
-) {
+async function processBatchDealInServiceM8(records = []) {
   try {
     const recordLength = records.length;
     for (const [index, record] of records.entries()) {
@@ -1029,49 +960,7 @@ async function upsertCompanyInServiceM8(record) {
 }
 
 // Process Batch Contact from Hubspot to Service M8
-async function processBatchContactInServiceM8(
-  records = [
-    // {
-    //   id: "195745478080",
-    //   properties: {
-    //     about_us: null,
-    //     address: null,
-    //     address2: null,
-    //     city: null,
-    //     country: null,
-    //     createdate: "2025-12-04T06:06:37.413Z",
-    //     description: null,
-    //     domain: "goldcoast.qld.gov.au",
-    //     hs_country_code: null,
-    //     hs_lastmodifieddate: "2026-03-02T06:12:58.173Z",
-    //     hs_object_id: "195745478080",
-    //     name: "City of Gold Coast",
-    //     sourceid: null,
-    //     state: null,
-    //     zip: null,
-    //   },
-    //   createdAt: "2025-12-04T06:06:37.413Z",
-    //   updatedAt: "2026-03-02T06:12:58.173Z",
-    //   archived: false,
-    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
-    // },
-    {
-      id: "299134413246",
-      properties: {
-        createdate: "2026-02-17T09:27:10.691Z",
-        email: "johnny@test.com",
-        firstname: "Test ",
-        hs_object_id: "299134413246",
-        lastmodifieddate: "2026-03-03T15:30:52.738Z",
-        lastname: "Contact",
-      },
-      createdAt: "2026-02-17T09:27:10.691Z",
-      updatedAt: "2026-03-03T15:30:52.738Z",
-      archived: false,
-      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-1/299134413246",
-    },
-  ]
-) {
+async function processBatchContactInServiceM8(records = []) {
   try {
     const recordLength = records.length;
     for (const [index, record] of records.entries()) {
@@ -1187,58 +1076,7 @@ async function processSingleContactInServiceM8(record, index, recordLength) {
 }
 
 // Process Batch Company from Hubspot to Service M8
-async function processBatchCompanyInServiceM8(
-  records = [
-    // {
-    //   id: "195745478080",
-    //   properties: {
-    //     about_us: null,
-    //     address: null,
-    //     address2: null,
-    //     city: null,
-    //     country: null,
-    //     createdate: "2025-12-04T06:06:37.413Z",
-    //     description: null,
-    //     domain: "goldcoast.qld.gov.au",
-    //     hs_country_code: null,
-    //     hs_lastmodifieddate: "2026-03-02T06:12:58.173Z",
-    //     hs_object_id: "195745478080",
-    //     name: "City of Gold Coast",
-    //     sourceid: null,
-    //     state: null,
-    //     zip: null,
-    //   },
-    //   createdAt: "2025-12-04T06:06:37.413Z",
-    //   updatedAt: "2026-03-02T06:12:58.173Z",
-    //   archived: false,
-    //   url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/195745478080",
-    // },
-    {
-      id: "252164202957",
-      properties: {
-        about_us: null,
-        address: null,
-        address2: null,
-        city: null,
-        country: null,
-        createdate: "2026-03-03T10:29:36.525Z",
-        description: "test company",
-        domain: "testcompany.com",
-        hs_country_code: null,
-        hs_lastmodifieddate: "2026-03-03T11:13:14.281Z",
-        hs_object_id: "252164202957",
-        name: "Test Company",
-        sourceid: null,
-        state: null,
-        zip: null,
-      },
-      createdAt: "2026-03-03T10:29:36.525Z",
-      updatedAt: "2026-03-03T11:13:14.281Z",
-      archived: false,
-      url: "https://app-ap1.hubspot.com/contacts/442485870/record/0-2/252164202957",
-    },
-  ]
-) {
+async function processBatchCompanyInServiceM8(records = []) {
   try {
     const recordLength = records.length;
     for (const [index, record] of records.entries()) {

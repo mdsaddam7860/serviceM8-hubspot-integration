@@ -197,9 +197,15 @@ const PIPELINE_CATEGORY = Object.freeze({
 });
 
 const DEAL_STAGE = Object.freeze({
-  1621074403: "2697066966",
-  1322868159: "2190927293",
-  default: "2114542054",
+  // Pipeline -> Stage
+  // Service Maintenance Pipeline -> RFQ Received (Service Maintenance)
+  1621074403: "2697021925",
+
+  // Emma Pipeline -> Appointment Scheduled (Emma Pipeline )
+  1322868159: "2190927291",
+
+  // Nick Skippen Pipeline -> Lead Received  (Nick Skippen)
+  default: "2564260296",
 });
 function dealMappingSM8ToHS(record = {}) {
   // Helper to convert ServiceM8 dates (YYYY-MM-DD HH:MM:SS) to HubSpot Timestamps (Unix Milliseconds)
