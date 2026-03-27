@@ -1,17 +1,13 @@
-# Chnage your application name qrcwtvjnna and project directory mricube-hubspot-integration accordingly
-# Add SSH_PRIVATE_KEY ,SERVER_IP, and SERVER_USER as secrets in your GitHub repository settings
-# Also change this mri_cube_server to your app name in pm2 restart command
-# Remove workflow_dispatch: if you don't want to trigger the workflow manually
-# Uncomment the push section if you want to trigger the workflow on push to main branch
+name: Deploy to Ubuntu VM
 
-name: Deploy on Cloudways
-
+# Uncomment the push section if you want to trigger the workflow on push to the main branch
 # on:
 #   push:
 #     branches:
 #       - main
-on :
+on:
   workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,31 +19,29 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          # Saved as 'deploy_key' to support both RSA and ED25519 key formats
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy code to Cloudways
+      - name: Deploy code to Ubuntu VM
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           set -e
 
-          # Go to project directory
-          cd ~/applications/application_name/public_html/folder_name
+          # 1. Navigate to your project directory on the VM
+          # CHANGE THIS to your actual path (e.g., /home/ubuntu/mricube-hubspot-integration)
+          cd /ServiceM8-Hubspot-Integration/serviceM8-hubspot-integration$
 
-          # Pull latest code
+          # 2. Pull the latest code from your repository
           git pull origin main
 
-          # Install dependencies (production only)
+          # 3. Install production dependencies
           npm ci --production
 
-          # Ensure PM2 is in PATH and restart/start the app
-          export PATH=$PATH:/usr/local/bin
-          /home/master/bin/npm/lib/node_modules/bin/pm2 restart server_name || /home/master/bin/npm/lib/node_modules/bin/pm2 start ecosystem.config.js
+          # 4. Restart or start the application using PM2
+          # CHANGE 'mri_cube_server' to your actual PM2 application name
+          pm2 restart serviceM8-hubspot-integration || pm2 start ecosystem.config.js
 
-          echo "Deployment completed successfully"
+          echo "Deployment to Ubuntu VM completed successfully"
           EOF
-
-
-
-          

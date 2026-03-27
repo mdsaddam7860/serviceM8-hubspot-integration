@@ -368,14 +368,8 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
   try {
     const lastSyncISO = getLastSyncTime();
 
-    // Convert to Date
-    const dateObj = new Date(lastSyncISO);
-
-    // Add 30 minutes
-    dateObj.setMinutes(dateObj.getMinutes() + 30);
-
-    // Format back
-    const formattedDate = dateObj.toISOString().replace("T", " ").split(".")[0];
+    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    logger.info(`Getting records : ${formattedDate}`);
 
     logger.info(`Getting records : ${formattedDate}`);
 
@@ -1429,35 +1423,4 @@ export {
 
   //--------------------------[ServiceM8 -> hubspot]---------------------
   ServiceM8ToHubspotSync,
-
-  // SECURITY_ROLES,
-  // JOB_CATEGORY_UUID,
-  // // syncServiceM8CompanyContactToHubSpotAsContact,
-  // upsertCompanyContactInServiceM8,
-  // upsertContactInServiceM8,
-  // upsertCompanyInServiceM8,
-  // processBatchCompanyInServiceM8,
-  // processBatchContactInServiceM8,
-  // searchInServiceM8CustomFiled,
-  // processBatchDealInServiceM8,
-  // getAllClient,
-  // getAllJobs,
-  // getAllStaffs,
-  // getAllNotes,
-  // searchInServiceM8UsingCustomField,
-  // syncCompaniesTask,
-  // upsertjobInServiceM8,
-  // syncServiceM8ToHubSpot,
-  // searchInServiceM8,
-  // ---------------- [ ServiceM8 → HubSpot Sync ] ----------------
-  //[ServiceM8] - Fetch Client from serviceM8 and sync to Hubspot as Contact
-  // syncServiceM8ClientToHubSpotAsContact,
-  //[ServiceM8] - Fetch Job from serviceM8 and sync to Hubspot as Deal
-  // syncServiceM8JobToHubSpotAsDeal,
-  //[ServiceM8] - Fetch Note from serviceM8 and sync to Hubspot as Activity
-  // syncServiceM8NoteToHubSpotAsActivity,
-  //[ServiceM8] - Fetch Client from serviceM8 and sync to Hubspot as Company
-  // syncServiceM8ClientToHubSpotAsCompany,
-  //[ServiceM8] - Fetch technician-added tasks from serviceM8 and sync to Hubspot as Activity
-  // syncServiceM8JobChecklistToHubSpotAsTasks,
 };
