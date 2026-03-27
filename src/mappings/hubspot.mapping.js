@@ -192,8 +192,14 @@ const PIPELINE_CATEGORY = Object.freeze({
   //  S - Maintenance   -> Service Maintenance Pipeline -> 1621074403
   "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b": "1621074403",
 
-  //  I - Nick Quote  -> Nick's pipeline -> 1621074403
+  //  I - Nick Quote  -> Nick's pipeline -> default
   "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b": "default",
+});
+
+const DEAL_STAGE = Object.freeze({
+  1621074403: "2697066966",
+  1322868159: "2190927293",
+  default: "2114542054",
 });
 function dealMappingSM8ToHS(record = {}) {
   // Helper to convert ServiceM8 dates (YYYY-MM-DD HH:MM:SS) to HubSpot Timestamps (Unix Milliseconds)
@@ -210,6 +216,8 @@ function dealMappingSM8ToHS(record = {}) {
     return "false";
   };
 
+  const pipeline = PIPELINE_CATEGORY[record?.category_uuid];
+
   const payload = cleanProps({
     servicem8_job_category: JOB_CATEGORY_UUID[record?.category_uuid],
     // --- Identifiers & Status ---
@@ -219,8 +227,8 @@ function dealMappingSM8ToHS(record = {}) {
     sourceid: record?.uuid,
     dealname: record?.job_address?.split("\n")[0] || "New Job", // Using address as name, or a fallback
     // pipeline: PIPELINE_CATEGORY[record?.category_uuid],
-    pipeline: PIPELINE_CATEGORY[record?.category_uuid] || "default",
-    dealstage: "2564260296",
+    pipeline: pipeline,
+    dealstage: DEAL_STAGE[pipeline],
 
     // --- Descriptions & Addresses ---
     job_address_service_m8: record?.job_address,
