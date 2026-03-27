@@ -8,6 +8,13 @@ import { logger } from "./src/index.js";
 import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
 import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 
+/**!SECTION
+ * Current Changes
+ * Delta
+ * Frequency
+ *
+ */
+
 // Apply save synclasTime logic in Scheduler
 
 // ------------------------------ Node Cron Schedulers------------------------------------

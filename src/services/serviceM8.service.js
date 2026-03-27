@@ -44,7 +44,7 @@ const JOB_CATEGORY_UUID = Object.freeze({
    *  M - Maintenance          f4460be7-395d-42ca-a465-22f384e3a8fb
    *  S - Maintenance          b4150a2b-1114-49b0-bbc5-23e7c61e2f7b
    */
-  "84655c31-55d7-4509-8681-20156066eeab": "I - Council Application",
+  // "84655c31-55d7-4509-8681-20156066eeab": "I - Council Application", // Mention in the email/update to ignnore this one
   "9f41bb38-b426-477c-bc58-20c454051fab": "I - Supply Only",
   "3f20f466-f849-4bfa-ab52-23e6fe361feb": "I - Emma Quote",
   "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b": "I - Nick Quote",

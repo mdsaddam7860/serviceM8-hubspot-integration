@@ -125,14 +125,14 @@ function getLastSyncTime() {
   }
 
   // Fallback: If no file exists, return the timestamp from 1 hour ago
-  const oneHourAgo = new Date();
-  oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-  return oneHourAgo.toISOString();
+  // const oneHourAgo = new Date();
+  // oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+  // return oneHourAgo.toISOString();
 
   // TODO : Change delta to 1 Hour
-  // const fifteenMinsAgo = new Date();
-  // fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 15);
-  // return fifteenMinsAgo.toISOString();
+  const fifteenMinsAgo = new Date();
+  fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 5);
+  return fifteenMinsAgo.toISOString();
 }
 
 /**

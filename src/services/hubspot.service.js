@@ -523,7 +523,6 @@ async function upsertDealInHubspot(record) {
     // Find deal if exist update else create deal
     const hs_client = getHubspotClient();
 
-    const sourceid = record?.uuid;
     const payload = dealMappingSM8ToHS(record);
 
     logger.info(
@@ -586,33 +585,28 @@ async function upsertActivityInHubspot(endpoint, record = {}) {
 
     const notes = hs_client.customObject(`${endpoint}`);
 
-    // const sourceid = record?.uuid;
-    // ❌ Create payload before testing and check if i only need to create notes (or update it also?)
-    // const payload = {
-    //   note: record?.note,
-    //   sourceid: sourceid,
-    // };
     const payload = activityMappingSM8ToHS(record);
     logger.info(`payload: ${JSON.stringify(payload, null, 2)}`);
-    // search Note based on sourceid
+    // search note in hubspot
 
-    // const existingNote = await notes.getCustomObjectByCustomField(
-    //   "sourceid",
-    //   sourceid
-    // );
+    // let properties = noteProperties();
 
-    // if (existingNote) {
-    //   logger.info(`Existing deal: ${JSON.stringify(existingNote, null, 2)}`);
-    //   const result = await notes.update(existingNote?.id, payload);
-    //   logger.info(`Created deal: ${JSON.stringify(result, null, 2)}`);
+    // search Note based on servicem8_uuid
 
-    //   // return await notes.update(existingNote?.id, payload);
-    // } else {
-    // create  contact
-    return await notes.create(payload);
-    // logger.info(`Created Activity: ${JSON.stringify(result, null, 2)}`);
-    // return await notes.createContact(payload);
-    // }
+    const existingNote = await notes.getCustomObjectByCustomField(
+      "servicem8_uuid",
+      record?.uuid
+      // properties
+    );
+
+    if (existingNote) {
+      logger.info(`Existing Note: ${JSON.stringify(existingNote, null, 2)}`);
+
+      return await notes.update(existingNote?.id, payload);
+    } else {
+      // create  contact
+      return await notes.create(payload);
+    }
   } catch (error) {
     logger.error(`"❌ HubSpot Note failed to Create`, {
       httpStatus: error?.status,
@@ -935,125 +929,6 @@ async function processAssociatedCompanyContactsInHubspotWithContact(
 
 async function processBatchDealInHubspot(
   records = [
-    // {
-    //   uuid: "05a10154-0123-45bc-804a-2396df4e950d",
-    //   active: 1,
-    //   date: "2025-12-11 00:00:00",
-    //   job_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
-    //   billing_address: "412 Hemmant Tingalpa Rd\nHemmant QLD 4174",
-    //   status: "Completed",
-    //   quote_date: "0000-00-00 00:00:00",
-    //   work_order_date: "2025-12-11 15:37:49",
-    //   work_done_description: "",
-    //   lng: 153.1337208,
-    //   lat: -27.461306,
-    //   generated_job_id: "39399",
-    //   completion_date: "2025-12-17 12:34:29",
-    //   completion_actioned_by_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
-    //   unsuccessful_date: "0000-00-00 00:00:00",
-    //   payment_date: "2025-12-18 00:00:00",
-    //   payment_method: "Xero",
-    //   payment_amount: 570,
-    //   payment_actioned_by_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-    //   edit_date: "2025-12-19 05:45:46",
-    //   geo_is_valid: 1,
-    //   payment_note: "",
-    //   ready_to_invoice: "1",
-    //   ready_to_invoice_stamp: "2025-12-18 05:57:35",
-    //   company_uuid: "6a0dadab-f917-4a91-8038-2396dee63ebb",
-    //   geo_country: "Australia",
-    //   geo_postcode: "4174",
-    //   geo_state: "QLD",
-    //   geo_city: "Hemmant",
-    //   geo_street: "Hemmant Tingalpa Road",
-    //   geo_number: "412",
-    //   payment_processed: 1,
-    //   payment_processed_stamp: "2025-12-18 05:59:03",
-    //   payment_received: 1,
-    //   payment_received_stamp: "2025-12-18 00:00:00",
-    //   total_invoice_amount: "570.0000",
-    //   job_is_scheduled_until_stamp: "2025-12-17 08:00:00",
-    //   category_uuid: "f4460be7-395d-42ca-a465-22f384e3a8fb",
-    //   queue_uuid: "",
-    //   queue_expiry_date: "0000-00-00 00:00:00",
-    //   badges: "",
-    //   invoice_sent: true,
-    //   purchase_order_number: "",
-    //   invoice_sent_stamp: "2025-12-17 12:33:30",
-    //   queue_assigned_staff_uuid: "",
-    //   quote_sent_stamp: "0000-00-00 00:00:00",
-    //   quote_sent: false,
-    //   customfield_application_number: "",
-    //   customfield_lot: "0",
-    //   customfield_plan: "",
-    //   active_network_request_uuid: "",
-    //   customfield_lead_source: "",
-    //   customfield_xero_tracking_cat_1: "",
-    //   customfield_xero_tracking_cat_2: "",
-    //   related_knowledge_articles: false,
-    //   job_description: "17 DEC - HARMOR TO PUMP OUT SEPTIC AND GREASE TRAP",
-    //   created_by_staff_uuid: "f48ba2fb-d1ac-4555-b0d9-2009faba39bb",
-    // },
-    // {
-    //   uuid: "021e5b1f-bb4b-497a-9f0b-22ec72ffdb4d",
-    //   active: 1,
-    //   date: "2025-06-24 00:00:00",
-    //   job_address: "148 Thompson Road\nGreenbank QLD 4124",
-    //   billing_address: "148 Thompson Road\nGreenbank QLD 4124",
-    //   status: "Quote",
-    //   quote_date: "2025-06-24 13:23:48",
-    //   work_order_date: "0000-00-00 00:00:00",
-    //   work_done_description: "",
-    //   lng: 152.9584103,
-    //   lat: -27.6984444,
-    //   generated_job_id: "31464",
-    //   completion_date: "0000-00-00 00:00:00",
-    //   completion_actioned_by_uuid: "",
-    //   unsuccessful_date: "0000-00-00 00:00:00",
-    //   payment_date: "0000-00-00 00:00:00",
-    //   payment_method: "",
-    //   payment_amount: 0,
-    //   payment_actioned_by_uuid: "",
-    //   edit_date: "2025-07-15 14:17:38",
-    //   geo_is_valid: 1,
-    //   payment_note: "",
-    //   ready_to_invoice: "0",
-    //   ready_to_invoice_stamp: "0000-00-00 00:00:00",
-    //   company_uuid: "2acf2b64-7fcf-4549-b16f-22ec73adc85b",
-    //   geo_country: "Australia",
-    //   geo_postcode: "4124",
-    //   geo_state: "QLD",
-    //   geo_city: "Greenbank",
-    //   geo_street: "Thompson Road",
-    //   geo_number: "148",
-    //   payment_processed: 0,
-    //   payment_processed_stamp: "0000-00-00 00:00:00",
-    //   payment_received: 0,
-    //   payment_received_stamp: "0000-00-00 00:00:00",
-    //   total_invoice_amount: "28168.5500",
-    //   job_is_scheduled_until_stamp: "2025-07-01 11:00:00",
-    //   category_uuid: "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b",
-    //   queue_uuid: "",
-    //   queue_expiry_date: "0000-00-00 00:00:00",
-    //   badges: "",
-    //   invoice_sent: false,
-    //   purchase_order_number: "",
-    //   invoice_sent_stamp: "0000-00-00 00:00:00",
-    //   queue_assigned_staff_uuid: "",
-    //   quote_sent_stamp: "2025-07-01 12:19:49",
-    //   quote_sent: true,
-    //   customfield_application_number: "",
-    //   customfield_lot: "0",
-    //   customfield_plan: "",
-    //   active_network_request_uuid: "",
-    //   customfield_lead_source: "",
-    //   customfield_xero_tracking_cat_1: "",
-    //   customfield_xero_tracking_cat_2: "",
-    //   related_knowledge_articles: false,
-    //   job_description:
-    //     "Source - Google Rating (B)\nHas an old system that has mutliple issues. Would like a quote to replace.\nBooked for 2nd job around 10.30 ish ",
-    //   created_by_staff_uuid: "2e65a790-64bc-4d05-892c-1cd9f69b454b",
-    // },
     {
       uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
       active: 1,
@@ -1119,7 +994,6 @@ async function processBatchDealInHubspot(
   ]
 ) {
   // Start the timer for the entire batch execution
-  // console.time("BatchProcessingTimer");
   logger.info(`Records length : ${records.length}`);
 
   const filterRecords = records.filter(
@@ -1143,9 +1017,6 @@ async function processBatchDealInHubspot(
       });
     }
   }
-
-  // End the timer after the loop finishes all records
-  // console.timeEnd("BatchProcessingTimer");
 }
 
 async function processSingleDealInHubspot(record, index, recordSize) {
@@ -1224,247 +1095,18 @@ async function processSingleDealInHubspot(record, index, recordSize) {
     });
   }
 }
-async function processBatchActivityInHubspot(
-  records = [
-    {
-      uuid: "fb02f027-ad57-4791-8d90-21b1afc01f6b",
-      edit_by_staff_uuid: "687d86c1-43c4-444e-9a6a-1cd3ccba40fb",
-      create_date: "2024-08-13 18:51:45",
-      edit_date: "2024-08-13 18:51:45",
-      active: 1,
-      note: "Express Wastewater Solutions Quote #18243 signed by Laura COOK",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "09de0f30-ff6e-4121-804a-21b28383af4b",
-      edit_by_staff_uuid: "f4ab2d9f-c1be-48f3-b95b-1cd9f60c678b",
-      create_date: "2024-08-15 07:46:27",
-      edit_date: "2024-08-15 07:46:27",
-      active: 1,
-      note: "Partial invoice #18243A created for $770.00",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "409d723a-5930-43a3-bf26-21c12f2a6b0b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-08-30 07:23:45",
-      edit_date: "2024-08-30 07:23:45",
-      active: 1,
-      note: "Customer wants late october for install at this stage",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "fc1f872d-12e3-4893-8f8e-21c12c1a54eb",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-08-30 08:33:05",
-      edit_date: "2024-08-30 08:33:05",
-      active: 1,
-      note: "won’t be home during g the week of 14 to 19 October",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "937c4b8f-1a07-4113-af7a-21d387060fda",
-      edit_by_staff_uuid: "f4ab2d9f-c1be-48f3-b95b-1cd9f60c678b",
-      create_date: "2024-09-17 08:02:50",
-      edit_date: "2024-09-17 08:02:50",
-      active: 1,
-      note: "Plumbing approval is being held up due ti building envelope. Left msg with Laura, nick to ring council when they’re open",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "373a3c71-bd0e-472a-8375-21ef4335d68b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-15 09:53:55",
-      edit_date: "2024-10-15 09:53:55",
-      active: 1,
-      note: "called Laura to discuss scheduling/pre-site etc. Left message",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "57719631-fee4-42cd-9228-21f3cacc6d8b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-18 13:58:43",
-      edit_date: "2024-10-18 13:58:43",
-      active: 1,
-      note: "PREVIOUS JOB DESCRIPTION NOTES \n\nLead Qld Retrospective Building Approvals \n\nSecond dwelling possibly just a LAA upgrade \n\nBooked between 12 and 2",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "f4302f4c-3f31-4a7b-ae35-21f90505f26a",
-      edit_by_staff_uuid: "5f5b74fc-b4e7-4d25-9479-1cd9fb07c74b",
-      create_date: "2024-10-24 10:57:34",
-      edit_date: "2024-10-24 10:57:34",
-      active: 1,
-      note: "100m Poly run \nParts to adapt from 32mm pressure to 25mm poly, tried to confirm if we are reconnecting sand filter (unable to confirm at this stage) \n3m3 sand required \nFew rocks on ground, ground maybe hard \nPM inspection recommended \nSufficient grass cover \n@peterskippen",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "82b280dd-6448-4d61-843e-21f9005c2aaa",
-      edit_by_staff_uuid: "5f5b74fc-b4e7-4d25-9479-1cd9fb07c74b",
-      create_date: "2024-10-24 11:09:58",
-      edit_date: "2024-10-24 11:09:58",
-      active: 1,
-      note: "Spoke with Laura about sand filter, advised if incorrect flow or no working replacement would be required. Advised $1500 for replacement. Laura advised happy for us just to replace it on the day with a new one.",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "fec96f4a-aeba-491b-9745-21f90bf4c86a",
-      edit_by_staff_uuid: "5f5b74fc-b4e7-4d25-9479-1cd9fb07c74b",
-      create_date: "2024-10-24 11:12:05",
-      edit_date: "2024-10-24 11:12:05",
-      active: 1,
-      note: "Parts required: \n32mm pressure elbow - 8 \n32mm x 40mm pressure reducer - 4 \n32mm faucet elbow - 1 \n32mm x 25mm poly bush - 1 \n25mm poly x 25mm male adapter \n25mm lilac poly HD - 2 \nIrrigation/sprinkler fittings",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "132b5b28-6879-4733-b7be-21f94a61c8ab",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-24 14:23:55",
-      edit_date: "2024-10-24 14:24:03",
-      active: 1,
-      note: "Called Logan, spoke to Taylor. Booked EDA pm Wednesday 30/10. Nick site contact ",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "3237de2f-c969-4c59-82ab-21f94b6440cb",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-24 14:32:32",
-      edit_date: "2024-10-24 14:32:32",
-      active: 1,
-      note: "Spoke to coast2coast, spoke to Skye and booked 3.5T combo with spreader bar",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "32d5122c-5b9f-48d0-9c8b-21fd33aa165b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-28 11:43:47",
-      edit_date: "2024-10-28 11:43:47",
-      active: 1,
-      note: "Reece order placed",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "62cb029e-1da0-4b0d-97ef-21fd3a43ee1b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-28 14:50:49",
-      edit_date: "2024-10-28 14:50:49",
-      active: 1,
-      note: "Spoke to Laura about the sand filter. shouldn't be needed as its not part of the CEA. We won't hook it up for now. Can do it if Council make us as a variation",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "a68b3c0c-1088-4624-a158-21feee2d817a",
-      edit_by_staff_uuid: "5f5b74fc-b4e7-4d25-9479-1cd9fb07c74b",
-      create_date: "2024-10-30 09:50:29",
-      edit_date: "2024-10-30 09:59:40",
-      active: 1,
-      note: "Operator hours: 6:30 - 10:30\nMatt’s civil and haulage (Matt) - contact via coast to coast ",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "8038344b-8f1e-45e7-a5f2-21fee980cbfb",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-10-30 09:56:24",
-      edit_date: "2024-10-30 09:56:24",
-      active: 1,
-      note: "Excess fill put where customer wanted it along fenceline for future garden",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "beb03181-a9d2-4592-8b5b-22050d02194b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2024-11-05 15:55:14",
-      edit_date: "2024-11-05 15:55:14",
-      active: 1,
-      note: "Spoke to Laura, advised the plumbing final inspection will take place after the second dwelling is all sorted",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "ee2ea7f8-e178-4c41-b415-22919ecada1b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2025-03-26 09:36:11",
-      edit_date: "2025-03-26 09:36:11",
-      active: 1,
-      note: "Spoke to Nathan from Logan Council. no issue with action notice as this job is ongoing",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-    {
-      uuid: "051d8685-b4a7-4ae1-a628-232bf0f2633b",
-      edit_by_staff_uuid: "12bc747b-35ef-43b2-9382-1cd3cacdd68b",
-      create_date: "2025-08-27 08:59:48",
-      edit_date: "2025-08-27 08:59:48",
-      active: 1,
-      note: "Called Logan Council, spoke to Ben Saye. gave update.",
-      action_required: "0",
-      action_completed_by_staff_uuid: "",
-      related_object: "job",
-      related_object_uuid: "022f69f3-1cf9-4a0d-8059-21a5012337bb",
-    },
-  ]
-) {
+async function processBatchActivityInHubspot(records = []) {
   const hs_client = getHubspotClient();
   for (const record of records) {
     try {
-      logger.info(`✅ Processing Note  ${JSON.stringify(record, null, 2)}`);
+      logger.info(
+        `[ServiceM8] Processing Note  ${JSON.stringify(record, null, 2)}`
+      );
 
       // Upsert Note in hubspot
       const upsertNote = await upsertActivityInHubspot("notes", record);
       logger.info(
-        `✅ Upserted Activity  ${JSON.stringify(upsertNote, null, 2)}`
+        `[hubspot] Upserted Note  ${JSON.stringify(upsertNote, null, 2)}`
       );
 
       // fetch contacts and deal then associate it.
@@ -1611,12 +1253,12 @@ async function processBatchActivityInHubspot(
         let dealId = null;
         const existingDeal = await searchInHubspot(
           "deals",
-          "sourceid",
+          "job_uuid_service_m8",
           record.related_object_uuid
         );
         dealId = existingDeal[0]?.id;
 
-        if (!existingDeal || existingDeal?.length > 0) {
+        if (!existingDeal) {
           // fetch job
           const job = await searchInServiceM8(
             "job.json",
