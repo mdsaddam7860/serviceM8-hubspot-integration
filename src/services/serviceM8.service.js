@@ -106,13 +106,11 @@ async function fetchAllServiceM8Records(endpoint) {
     return allRecords;
   } catch (error) {
     logger.error(`Failed to fetch paginated data from ${endpoint}`, {
-      //   message: error.message,
-      //   stack: error.stack,
-      status: error.response?.status,
+      status: error?.status,
       response: error.response?.data,
-      method: error.config?.method,
-      url: error.config?.url,
-      headers: error.config?.headers,
+      method: error?.method,
+      url: error?.config?.url,
+      message: error.message,
       stack: error?.stack || error,
     });
     throw error;
@@ -289,8 +287,8 @@ async function syncServiceM8ClientToHubSpotAsContact() {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -324,8 +322,8 @@ async function syncServiceM8ClientToHubSpotAsCompany() {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -359,8 +357,8 @@ async function syncServiceM8JobToHubSpotAsDeal() {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error.message,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -370,7 +368,15 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
   try {
     const lastSyncISO = getLastSyncTime();
 
-    const formattedDate = lastSyncISO.replace("T", " ").split(".")[0];
+    // Convert to Date
+    const dateObj = new Date(lastSyncISO);
+
+    // Add 30 minutes
+    dateObj.setMinutes(dateObj.getMinutes() + 30);
+
+    // Format back
+    const formattedDate = dateObj.toISOString().replace("T", " ").split(".")[0];
+
     logger.info(`Getting records : ${formattedDate}`);
 
     const endpoint = `note.json?$filter=edit_date gt '${formattedDate}'`;
@@ -394,8 +400,8 @@ async function syncServiceM8NoteToHubSpotAsActivity() {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -432,8 +438,8 @@ async function syncServiceM8JobChecklistToHubSpotAsTasks() {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
       message: error.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -503,8 +509,8 @@ async function searchInServiceM8(endpoint, uuid) {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
-      // message: error.message,
+      message: error.message,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -527,8 +533,8 @@ async function searchInServiceM8CustomFiled(endpoint, key, value) {
       response: error.response?.data,
       method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
-      // message: error.message,
+      message: error.message,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -576,11 +582,12 @@ async function searchInServiceM8UsingCustomField(
     logger.error(
       `❌ failed to fetch ${query} : ${customField} : ${customValue}`,
       {
-        status: error?.response?.status,
-        response: error?.response?.data,
-        method: error?.config?.method,
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
+        message: error.message,
+        stack: error?.stack || error,
       }
     );
 
@@ -623,11 +630,12 @@ async function upsertjobInServiceM8(record = {}) {
     return response.data;
   } catch (error) {
     logger.error("❌ Error processing Job in upsertjobInServiceM8", {
-      status: error?.response?.status,
-      response: error?.response?.data,
-      method: error?.config?.method,
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
+      message: error.message,
+      stack: error?.stack || error,
     });
     throw error;
   }
@@ -710,11 +718,12 @@ async function processBatchDealInServiceM8(
     }
   } catch (error) {
     logger.error("❌ Error processing Deal in Batch", {
-      status: error?.response?.status,
-      response: error?.response?.data,
-      method: error?.config?.method,
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
       url: error?.config?.url,
-      headers: error?.config?.headers,
+      message: error.message,
+      stack: error?.stack || error,
     });
   }
 }
@@ -766,11 +775,12 @@ async function processSingleJobInServiceM8(record, index, recordLength) {
         record
       )}`,
       {
-        status: error?.response?.status,
-        response: error?.response?.data,
-        method: error?.config?.method,
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
         url: error?.config?.url,
-        headers: error?.config?.headers,
+        message: error.message,
+        stack: error?.stack || error,
       }
     );
   }
@@ -799,11 +809,12 @@ async function processAssociatedContacts(contactIds, upsertJob) {
         return upsertjobcontact;
       } catch (error) {
         logger.error(`❌ Error processing contact ${contactId}`, {
-          message: error?.message,
-          jobId: upsertJob?.id,
-          status: error?.response?.status,
-          stack: error?.stack,
-          response: error?.response?.data,
+          status: error?.status,
+          response: error.response?.data,
+          method: error?.method,
+          url: error?.config?.url,
+          message: error.message,
+          stack: error?.stack || error,
         });
       }
     })
@@ -840,11 +851,11 @@ async function upsertContactInServiceM8(record) {
     return response.data;
   } catch (error) {
     logger.error("❌ Error processing Client in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
       message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
       stack: error?.stack || error,
     });
     throw error;
@@ -907,11 +918,11 @@ async function upsertCompanyContactInServiceM8(record = {}, company_uuid) {
     return response.data;
   } catch (error) {
     logger.error("❌ Error processing Client in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
       message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
       stack: error?.stack || error,
     });
     throw error;
@@ -968,11 +979,11 @@ async function upsertJobContactInServiceM8(record = {}, job_uuid) {
     return response.data;
   } catch (error) {
     logger.error("❌ Error processing Client in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
       message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
       stack: error?.stack || error,
     });
     throw error;
@@ -1012,11 +1023,11 @@ async function upsertCompanyInServiceM8(record) {
     return response.data;
   } catch (error) {
     logger.error("❌ Error processing Client in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
       message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
       stack: error?.stack || error,
     });
     throw error;
@@ -1076,11 +1087,11 @@ async function processBatchContactInServiceM8(
         logger.error(
           `Error processing Contact in BatchLoop ${processBatchContactInServiceM8}-[ServiceM8]`,
           {
+            status: error?.status,
+            response: error.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
             message: error.message,
-            status: error.response?.status,
-            data: error.response?.data,
-            url: error.config?.url,
-            method: error.config?.method,
             stack: error?.stack || error,
           }
         );
@@ -1088,11 +1099,11 @@ async function processBatchContactInServiceM8(
     }
   } catch (error) {
     logger.error(`❌ Error processing Contact in Batch`, {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
       message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
       stack: error?.stack || error,
     });
   }
@@ -1170,11 +1181,11 @@ async function processSingleContactInServiceM8(record, index, recordLength) {
         record
       )}`,
       {
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
         message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method,
         stack: error?.stack || error,
       }
     );
@@ -1243,11 +1254,11 @@ async function processBatchCompanyInServiceM8(
         logger.error(
           `❌ Error processing Compnay in processBatchCompanyInServiceM8`,
           {
+            status: error?.status,
+            response: error.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
             message: error.message,
-            status: error.response?.status,
-            data: error.response?.data,
-            url: error.config?.url,
-            method: error.config?.method,
             stack: error?.stack || error,
           }
         );
@@ -1257,11 +1268,11 @@ async function processBatchCompanyInServiceM8(
     logger.error(
       `❌ Error processing Compnay in processBatchCompanyInServiceM8`,
       {
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
         message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method,
         stack: error?.stack || error,
       }
     );
@@ -1332,11 +1343,11 @@ async function processSingleCompanyInServiceM8(record, index, recordLength) {
           }
         } catch (error) {
           logger.error(`Error processing CompanyContact in batch`, {
+            status: error?.status,
+            response: error.response?.data,
+            method: error?.method,
+            url: error?.config?.url,
             message: error.message,
-            status: error.response?.status,
-            data: error.response?.data,
-            url: error.config?.url,
-            method: error.config?.method,
             stack: error?.stack || error,
           });
         }
@@ -1348,11 +1359,11 @@ async function processSingleCompanyInServiceM8(record, index, recordLength) {
         record
       )}`,
       {
+        status: error?.status,
+        response: error.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
         message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method,
         stack: error?.stack || error,
       }
     );
@@ -1373,6 +1384,7 @@ async function ServiceM8ToHubspotSync() {
       url: error?.config?.url,
       headers: error?.config?.headers,
       httpError: error?.stack || error,
+      stack: error?.stack || error,
     });
   }
 }
