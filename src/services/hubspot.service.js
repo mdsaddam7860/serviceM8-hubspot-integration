@@ -965,6 +965,40 @@ async function processBatchActivityInHubspot(records = []) {
       logger.info(
         `[ServiceM8] Processing Note  ${JSON.stringify(record, null, 2)}`
       );
+      // fetch contacts and deal then associate it.
+      const relatedObject = record.related_object?.trim().toLowerCase();
+
+      let dealId = null;
+
+      if (relatedObject === "job") {
+        const existingDeal = await searchInHubspot(
+          "deals",
+          "job_uuid_service_m8",
+          record.related_object_uuid
+        );
+        dealId = existingDeal[0]?.id;
+
+        if (!existingDeal) {
+          // fetch job
+          const job = await searchInServiceM8(
+            "job.json",
+            record.related_object_uuid
+          );
+          // upsert deal
+          const upsert = await upsertDealInHubspot(job);
+
+          if (!upsert) {
+            logger.error(
+              `❌ Could not upsert Deal for [ServiceM8 Note] : ${JSON.stringify(
+                record
+              )}`
+            );
+            continue;
+          }
+          logger.info(`✅ Upserted Deal  ${JSON.stringify(upsert, null, 2)}`);
+          dealId = upsert?.id;
+        }
+      }
 
       // Upsert Note in hubspot
       const upsertNote = await upsertActivityInHubspot("notes", record);
@@ -972,8 +1006,22 @@ async function processBatchActivityInHubspot(records = []) {
         `[hubspot] Upserted Note  ${JSON.stringify(upsertNote, null, 2)}`
       );
 
-      // fetch contacts and deal then associate it.
-      const relatedObject = record.related_object?.trim().toLowerCase();
+      if (dealId && upsertNote?.id) {
+        // Associate activity with contact
+        const associate = await hs_client.associations.associate(
+          "deals",
+          dealId,
+          "notes",
+          upsertNote?.id,
+          "213",
+          "HUBSPOT_DEFINED"
+        );
+        logger.info(
+          `✅ Associate Note ${
+            upsertNote?.id
+          } with deal ${dealId}  ${JSON.stringify(associate, null, 2)}`
+        );
+      }
 
       if (relatedObject == "company") {
         let contactId = null;
@@ -1110,44 +1158,6 @@ async function processBatchActivityInHubspot(records = []) {
               );
             }
           }
-        }
-      }
-      if (relatedObject === "job") {
-        let dealId = null;
-        const existingDeal = await searchInHubspot(
-          "deals",
-          "job_uuid_service_m8",
-          record.related_object_uuid
-        );
-        dealId = existingDeal[0]?.id;
-
-        if (!existingDeal) {
-          // fetch job
-          const job = await searchInServiceM8(
-            "job.json",
-            record.related_object_uuid
-          );
-          // upsert deal
-          const upsert = await upsertDealInHubspot(job);
-          logger.info(`✅ Upserted Deal  ${JSON.stringify(upsert, null, 2)}`);
-          dealId = upsert?.id;
-        }
-
-        if (dealId && upsertNote?.id) {
-          // Associate activity with contact
-          const associate = await hs_client.associations.associate(
-            "deals",
-            dealId,
-            "notes",
-            upsertNote?.id,
-            "213",
-            "HUBSPOT_DEFINED"
-          );
-          logger.info(
-            `✅ Associate Note ${
-              upsertNote?.id
-            } with deal ${dealId}  ${JSON.stringify(associate, null, 2)}`
-          );
         }
       }
     } catch (error) {

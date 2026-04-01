@@ -57,186 +57,218 @@ graph LR
 
 
 
-3. Core Component Responsibilities
+# 3. Core Component Responsibilities
 Component	Responsibility
 Controllers	Orchestrate sync logic. Decide execution flow when a request arrives.
 Mappings	Pure transformation functions converting ServiceM8 JSON → HubSpot format (and vice versa).
 Services	Low-level API handlers for GET, POST, PATCH requests including authentication handling.
 Webhooks	Entry points receiving event notifications from external platforms.
 Utils	Shared utilities: rate limiting, error formatting, global constants (e.g., JOB_CATEGORY_UUID).
-4. Key Workflows & Data Flows
-A. ServiceM8 → HubSpot (Outbound)
+# 4. Key Workflows & Data Flows
+### A. ServiceM8 → HubSpot (Outbound)
 
 Objective: Capture field activity and update the sales pipeline.
 
-Workflows:
+### Workflows:
 
-Contacts / Companies
+#### Contacts / Companies
 
-syncServiceM8ClientToHubSpotAsContact
+- syncServiceM8ClientToHubSpotAsContact
 
-syncServiceM8ClientToHubSpotAsCompany
+- syncServiceM8ClientToHubSpotAsCompany
 
-Deals
+#### Deals
 
-syncServiceM8JobToHubSpotAsDeal
+- syncServiceM8JobToHubSpotAsDeal
 
-Triggered on Job creation/update
+- Triggered on Job creation/update
 
-Activity
+#### Activity
 
-syncServiceM8NoteToHubSpotAsActivity
+- syncServiceM8NoteToHubSpotAsActivity
 
-Syncs job notes to HubSpot timeline
+- Syncs job notes to HubSpot timeline
 
-B. HubSpot → ServiceM8 (Inbound)
+### B. HubSpot → ServiceM8 (Inbound)
 
 Objective: Push leads and closed-won deals into operations.
 
-Workflows:
+#### Workflows:
 
-Leads → Clients
+- Leads → Clients
 
-syncHubspotContactToServiceM8Client
+- syncHubspotContactToServiceM8Client
 
-syncHubspotCompanyToServiceM8Client
+- syncHubspotCompanyToServiceM8Client
 
-Deals → Jobs
+### Deals → Jobs
 
-syncHubspotDealToServiceM8Job
+- syncHubspotDealToServiceM8Job
 
-Selective sync to ensure only qualified deals become active jobs
+- Selective sync to ensure only qualified deals become active jobs
 
-C. Batch Operations
+### C. Batch Operations
 
 Used for:
 
-High-volume synchronization
+    High-volume synchronization
 
-Initial migrations
+    Initial migrations
 
-Backfills
-
+    Backfills
+    
 Batch Processors:
 
-processBatchContactInHubspot
+    processBatchContactInHubspot
 
-processBatchContactInServiceM8
+    processBatchContactInServiceM8
 
-processBatchDealInHubspot
+    processBatchDealInHubspot
 
-processBatchDealInServiceM8
+    processBatchDealInServiceM8
 
-5. Technical Implementation Details
-🛡 Selective Sync Logic
+## 5. Technical Implementation Details
+#### 🛡 Selective Sync Logic
 
-To prevent irrelevant or low-quality data from entering HubSpot:
+- To prevent irrelevant or low-quality data from entering HubSpot:
 
-Job Category Filtering
+- Job Category Filtering
 
-Validates against JOB_CATEGORY_UUID
+- Validates against JOB_CATEGORY_UUID
 
-Status Mapping
+#### Status Mapping
 
-ServiceM8 Status → HubSpot Deal Stage
+- ServiceM8 Status → HubSpot Deal Stage
 
-Quote
+#### Quote
 
-Work in Progress
+- Work in Progress
 
-Completed
+#### Completed
 
-This ensures pipeline accuracy and prevents CRM pollution.
+- This ensures pipeline accuracy and prevents CRM pollution.
 
-🔗 Search & Deduplication Strategy
+##### 🔗 Search & Deduplication Strategy
 
-Before creating any record, the middleware performs a lookup.
+- Before creating any record, the middleware performs a lookup.
 
-Primary Keys
+- Primary Keys
 
-Email (Contacts)
+- Email (Contacts)
 
-Company Name / Domain
+- Company Name / Domain
 
-Secondary Key
+- Secondary Key
 
-external_id (stores remote system UUID in custom field)
+- external_id (stores remote system UUID in custom field)
 
-Helper Functions
+##### Helper Functions
 
-searchInServiceM8UsingCustomField
+- searchInServiceM8UsingCustomField
 
-findContactInHubspot
+- findContactInHubspot
 
-This ensures idempotent operations and avoids duplication.
+- This ensures idempotent operations and avoids duplication.
 
-🧪 Error Handling & Resilience
-Retries
+#### 🧪 Error Handling & Resilience
+- Retries
 
-Automatic retry logic for 5xx errors.
+- Automatic retry logic for 5xx errors.
 
-Rate Limiting
+- Rate Limiting
 
-Built-in throttling aligned with HubSpot limits:
+- Built-in throttling aligned with HubSpot limits:
 
-100 requests / 10 seconds
+- 100 requests / 10 seconds
 
-Logging
+- Logging
 
-Structured logs stored in /logs
+- Structured logs stored in /logs
 
-Logging libraries:
+#### Logging libraries:
 
-Winston
+- Winston
 
-Pino
-
-Enables post-mortem debugging and traceability
+- Enables post-mortem debugging and traceability
 
 ### 6. Project Directory Structure
+
 ```text
+
+├── .github/
+│ └── workflows/
+│ └── deploy.yml # CI/CD deployment pipeline
+│
+├── logs/ # Application logs
+├── node_modules/ # Dependencies
+│
 ├── src/
-│   ├── configs/       # API Credentials & Environment Setup
-│   ├── controllers/   # Sync Orchestration
-│   ├── mappings/      # Data Transformation Logic (Field-to-Field)
-│   ├── services/      # Axios-based API Clients
-│   ├── utils/         # Helpers & Rate Limiters
-│   ├── webhooks/      # Express Routes for Webhook Endpoints
-│   └── app.js         # Application Initialization
+│ ├── configs/ # Platform configuration files
+│ │ ├── hubspot.config.js
+│ │ └── serviceM8.config.js
+│ │
+│ ├── controllers/ # Request & webhook controllers
+│ ├── jobs/ # Job-related handlers
+│ │
+│ ├── mappings/ # Field & object mapping logic
+│ │ ├── hubspot.mapping.js
+│ │ └── serviceM8.mapping.js
+│ │
+│ ├── services/ # External API service layers
+│ │ ├── hubspot.service.js
+│ │ └── serviceM8.service.js
+│ │
+│ ├── utils/ # Helpers, formatters, shared utilities
+│ ├── webhooks/ # Webhook processors
+│ │
+│ ├── app.js # Express app setup
+│ └── index.js # Server entry point
+│
+├── .env # Environment variables (not committed)
+├── .env.example # Sample environment config
+├── Dockerfile # Containerization setup
+├── package.json # Dependencies & scripts
+├── package-lock.json
+├── README.md # Project documentation
+└── serviceM8-hubspot.js # Integration bootstrap logic
+
 ```
 
 
-7. Future Roadmap
-🔄 Delta Syncing
+---
+
+
+## 7. Future Roadmap
+### 🔄 Delta Syncing
 
 Scheduled task to detect records updated in the last 24 hours that may have missed a webhook event.
 
-⚖ Conflict Resolution
+#### ⚖ Conflict Resolution
 
-Implement Last-Modified-Wins logic for advanced two-way synchronization.
+- Implement Last-Modified-Wins logic for advanced two-way synchronization.
 
-📊 Health Dashboard
+#### 📊 Health Dashboard
 
-A lightweight frontend dashboard to:
+- A lightweight frontend dashboard to:
 
-Monitor sync success rates
+- Monitor sync success rates
 
-Track failed jobs
+- Track failed jobs
 
-Retry failed batches
+- Retry failed batches
 
-View real-time integration health
+- View real-time integration health
 
-Summary
+#### Summary
 
-This middleware architecture provides:
+- This middleware architecture provides:
 
-Clean separation of concerns
+- Clean separation of concerns
 
-Idempotent, safe synchronization
+- Idempotent, safe synchronization
 
-Resilient retry & rate-limit handling
+- Resilient retry & rate-limit handling
 
-Scalable batch processing capabilities
+- Scalable batch processing capabilities
 
 It is designed to operate as a reliable enterprise-grade integration layer between field operations and CRM systems.

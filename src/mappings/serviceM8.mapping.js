@@ -25,17 +25,21 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
   const reversedPayload = cleanProps({
     // --- Identifiers & Status ---
     uuid: record.job_uuid_service_m8 || job_uuid,
-    status: record.job_status_servicem8,
+    // status: record.job_status_servicem8,
+    // Fix 2: Only sync status if it exists in HS to avoid nulling it out
+    ...(record.job_status_servicem8 && {
+      status: parseInt(record.job_status_servicem8),
+    }),
     active: 1,
     generated_job_id: record.generated_job_id_service_m8,
 
     // --- Addresses & Description ---
-    job_address: record.dealname,
+    job_address: record.job_address_service_m8,
     billing_address: record.billing_address_service_m8,
     job_description: record.job_description_service_m,
 
     // --- Financials ---
-    payment_amount: record.amount,
+    // payment_amount: record.amount,
     purchase_order_number: record.purchase_order_number_service_m8,
 
     // --- Booleans ---
@@ -50,15 +54,49 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
     unsuccessful_date: record.job_unsuccessful_date_service_m8,
     completion_date: record.completion_date_service_m8,
     work_order_date: record.work_order_date_service_m8,
-
-    // --- Deal Info ---
-    // dealname: record.dealname,
-    // pipeline: "default",
-    // dealstage: "2564260296",
   });
 
   return reversedPayload;
 }
+
+// function jobMappingHSTOSM8(deal = {}, job_uuid) {
+//   const record = deal.properties || {};
+
+//   // Construct a proper address string from HS properties
+//   const fullAddress = [record.address, record.city, record.state, record.zip]
+//     .filter(Boolean)
+//     .join(", ");
+
+//   const payload = {
+//     uuid: record.job_uuid_service_m8 || job_uuid,
+//     active: 1,
+
+//     // Fix 1: Use actual address fields, not Deal Name
+//     job_address: record.job_address_service_m8,
+//     billing_address: record.billing_address_service_m8,
+//     job_description: record.job_description_service_m,
+
+//     // Fix 2: Only sync status if it exists in HS to avoid nulling it out
+//     ...(record.job_status_servicem8 && {
+//       status: parseInt(record.job_status_servicem8),
+//     }),
+
+//     // Fix 3: REMOVED payment_amount to prevent phantom payments
+//     purchase_order_number: record.purchase_order_number_service_m8,
+
+//     // Booleans
+//     quote_sent: record.quote_sent_service_m8,
+//     invoice_sent: record.invoice_sent_service_m8,
+//     payment_received: record.payment_received_service_m8,
+
+//     // Timestamps
+//     unsuccessful_date: record.job_unsuccessful_date_service_m8,
+//     completion_date: record.completion_date_service_m8,
+//     work_order_date: record.work_order_date_service_m8,
+//   };
+
+//   return cleanProps(payload);
+// }
 
 /**
  * Maps a Hubspot record to a ServiceM8 record.
