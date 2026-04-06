@@ -14,6 +14,8 @@ import {
   jobContactMappingHSTOSM8,
   dealProperties,
   getLastSyncTime,
+  needsUpdate,
+  needsUpdateJob,
 } from "../index.js";
 // -----------------------------------Hubspot Service -----------------------------------------
 import {
@@ -603,7 +605,23 @@ async function upsertjobInServiceM8(record = {}) {
     let payload = null;
 
     if (existingJob && existingJob.length > 0) {
-      payload = jobMappingHSTOSM8(record, existingJob[0]?.uuid);
+      // Ensure existingJob[0] is an object, not a string
+      const targetJob =
+        typeof existingJob[0] === "string"
+          ? JSON.parse(existingJob[0])
+          : existingJob[0];
+
+      payload = jobMappingHSTOSM8(record, targetJob.uuid);
+
+      // Call the new function
+      const shouldUpdate = needsUpdateJob(payload, targetJob, logger);
+
+      if (!shouldUpdate) {
+        logger.info(
+          `[ServiceM8 Job] Idempotency Check: No changes detected. Skipping update for UUID: ${targetJob.uuid}`
+        );
+        return targetJob.uuid; // Return without making the POST request
+      }
     } else {
       payload = jobMappingHSTOSM8(record);
     }
@@ -689,6 +707,8 @@ async function processSingleJobInServiceM8(record, index, recordLength) {
       logger.warn(`Could not upsert job for ${record?.id}`);
       return;
     }
+
+    logger.info(`Upserted Job UUID : ${upsertJob}`);
 
     // 4. Process Contacts (With individual error boundaries)
     if (associated_contact_ids.length > 0) {

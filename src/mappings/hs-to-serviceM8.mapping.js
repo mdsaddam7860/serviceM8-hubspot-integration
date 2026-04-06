@@ -25,11 +25,11 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
   const reversedPayload = cleanProps({
     // --- Identifiers & Status ---
     uuid: record.job_uuid_service_m8 || job_uuid,
-    // status: record.job_status_servicem8,
+    status: record?.job_status_servicem8,
     // Fix 2: Only sync status if it exists in HS to avoid nulling it out
-    ...(record.job_status_servicem8 && {
-      status: parseInt(record.job_status_servicem8),
-    }),
+    // ...(record.job_status_servicem8 && {
+    //   status: parseInt(record.job_status_servicem8),
+    // }),
     active: 1,
     generated_job_id: record.generated_job_id_service_m8,
 
@@ -39,21 +39,21 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
     job_description: record.job_description_service_m,
 
     // --- Financials ---
-    // payment_amount: record.amount,
-    purchase_order_number: record.purchase_order_number_service_m8,
+    // payment_amount: record.amount, //  We are not syncing amount
+    // purchase_order_number: record.purchase_order_number_service_m8,
 
     // --- Booleans ---
-    quote_sent: record.quote_sent_service_m8,
-    invoice_sent: record.invoice_sent_service_m8,
-    payment_received: record.payment_received_service_m8,
+    // quote_sent: record.quote_sent_service_m8,
+    // invoice_sent: record.invoice_sent_service_m8,
+    // payment_received: 0,
 
     // --- Timestamps ---
     // quote_sent_stamp: record.quote_sent_timestamp_service_m8,
     // invoice_sent_stamp: record.invoice_sent_timestamp_service_m8,
     // payment_received_stamp: record.payment_received_timestamp_service_m8,
-    unsuccessful_date: record.job_unsuccessful_date_service_m8,
-    completion_date: record.completion_date_service_m8,
-    work_order_date: record.work_order_date_service_m8,
+    // unsuccessful_date: record.job_unsuccessful_date_service_m8,
+    // completion_date: record.completion_date_service_m8,
+    // work_order_date: record.work_order_date_service_m8,
   });
 
   return reversedPayload;

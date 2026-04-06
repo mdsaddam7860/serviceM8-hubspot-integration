@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { getHubspotClient } from "../configs/hubspot.config.js";
+import { logger } from "../index.js";
 function delta() {
   const date = new Date();
   // date.setDate(date.getDate() - 2);
@@ -37,7 +38,7 @@ function dealProperties() {
     "dealname",
     "dealstage",
     "amount",
-    "hs_lastmodifieddate",
+    // "hs_lastmodifieddate",
     "job_status_servicem8",
     "job_uuid_service_m8",
     "generated_job_id_service_m8",
@@ -46,7 +47,7 @@ function dealProperties() {
     "job_address_service_m8",
     "billing_address_service_m8",
     "job_description_service_m",
-    "amount",
+    // "amount",
     "purchase_order_number_service_m8",
     "quote_sent_service_m8",
     "invoice_sent_service_m8",
@@ -54,9 +55,10 @@ function dealProperties() {
     "quote_sent_timestamp_service_m8",
     "invoice_sent_timestamp_service_m8",
     "payment_received_timestamp_service_m8",
-    "job_unsuccessful_date_service_m8",
-    "completion_date_service_m8",
-    "work_order_date_service_m8",
+    // "job_unsuccessful_date_service_m8",
+    // "completion_date_service_m8",
+    // "work_order_date_service_m8",
+    "amount_servicem8",
   ];
 }
 function companyProperties() {
@@ -131,7 +133,7 @@ function getLastSyncTime() {
 
   // TODO : Change delta to 1 Hour
   // const fifteenMinsAgo = new Date();
-  // fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 15);
+  // fifteenMinsAgo.setMinutes(fifteenMinsAgo.getMinutes() - 2);
   // return fifteenMinsAgo.toISOString();
 }
 
@@ -188,35 +190,98 @@ function taskClient() {
  * universal-needs-update.js
  * Compares a local payload against a HubSpot record to prevent redundant API calls.
  */
+// function needsUpdate(payload, existingRecord, objectType = "Object") {
+//   if (!existingRecord || !existingRecord.properties) return true;
+
+//   const newProps = payload?.properties || payload || {};
+//   const oldProps = existingRecord.properties || existingRecord || {};
+
+//   const changes = Object.keys(newProps).filter((key) => {
+//     const newVal = newProps[key];
+//     const oldVal = oldProps[key];
+
+//     // Normalize values to strings for comparison
+//     // HubSpot returns null/undefined/empty string differently depending on the property type
+//     const normalizedNew =
+//       newVal === null || newVal === undefined ? "" : String(newVal).trim();
+//     const normalizedOld =
+//       oldVal === null || oldVal === undefined ? "" : String(oldVal).trim();
+
+//     // Special logic for Dates (HubSpot timestamps can vary in precision)
+//     // if (key.endsWith("_date") || key.includes("timestamp")) {
+//     //   const d1 = Date.parse(normalizedNew);
+//     //   const d2 = Date.parse(normalizedOld);
+//     //   if (!isNaN(d1) && !isNaN(d2)) return d1 !== d2;
+//     // }
+
+//     return normalizedNew !== normalizedOld;
+//   });
+
+//   if (changes.length > 0) {
+//     console.info(
+//       `[Idempotency] ${objectType} change detected in: ${changes.join(", ")}`
+//     );
+//     return true;
+//   }
+
+//   return false;
+// }
 function needsUpdate(payload, existingRecord, objectType = "Object") {
   if (!existingRecord || !existingRecord.properties) return true;
 
   const newProps = payload?.properties || payload || {};
-  const oldProps = existingRecord.properties;
+  const oldProps = existingRecord.properties || {};
 
   const changes = Object.keys(newProps).filter((key) => {
-    const newVal = newProps[key];
-    const oldVal = oldProps[key];
+    let newVal = newProps[key];
+    let oldVal = oldProps[key];
 
-    // Normalize values to strings for comparison
-    // HubSpot returns null/undefined/empty string differently depending on the property type
-    const normalizedNew =
-      newVal === null || newVal === undefined ? "" : String(newVal).trim();
-    const normalizedOld =
-      oldVal === null || oldVal === undefined ? "" : String(oldVal).trim();
-
-    // Special logic for Dates (HubSpot timestamps can vary in precision)
-    if (key.endsWith("_date") || key.includes("timestamp")) {
-      const d1 = Date.parse(normalizedNew);
-      const d2 = Date.parse(normalizedOld);
-      if (!isNaN(d1) && !isNaN(d2)) return d1 !== d2;
+    // 1. Handle Null/Undefined/Empty values
+    if (
+      (newVal === null || newVal === undefined || newVal === "") &&
+      (oldVal === null || oldVal === undefined || oldVal === "")
+    ) {
+      return false;
     }
+
+    // 2. Specialized Date/Timestamp Comparison
+    // Logic: Convert both to a common format (ISO String without milliseconds)
+    if (
+      key.endsWith("_date") ||
+      key.includes("timestamp") ||
+      key.includes("_stamp")
+    ) {
+      try {
+        const d1 = newVal ? new Date(newVal).toISOString().split(".")[0] : null;
+        const d2 = oldVal ? new Date(oldVal).toISOString().split(".")[0] : null;
+        return d1 !== d2;
+      } catch (e) {
+        // If date parsing fails, fall back to string comparison
+      }
+    }
+
+    // 3. Specialized Number Comparison
+    // Logic: Compare as floats to ignore trailing zeros (e.g., 10.5 vs 10.50)
+    if (
+      typeof newVal === "number" ||
+      (!isNaN(parseFloat(oldVal)) && !isNaN(oldVal - 0))
+    ) {
+      const n1 = parseFloat(newVal);
+      const n2 = parseFloat(oldVal);
+      if (!isNaN(n1) && !isNaN(n2)) {
+        return n1 !== n2;
+      }
+    }
+
+    // 4. Default: String Normalization
+    const normalizedNew = String(newVal ?? "").trim();
+    const normalizedOld = String(oldVal ?? "").trim();
 
     return normalizedNew !== normalizedOld;
   });
 
   if (changes.length > 0) {
-    console.info(
+    logger.info(
       `[Idempotency] ${objectType} change detected in: ${changes.join(", ")}`
     );
     return true;
@@ -240,9 +305,164 @@ function taskProperties() {
   ];
 }
 
+/**
+ * Compares the HubSpot-generated payload against the existing ServiceM8 record.
+ * Returns true if a significant change is detected, false otherwise.
+ */
+function needsUpdateJob(payload, existingJob) {
+  // These keys match the LEFT side of your jobMappingHSTOSM8 function
+  const fieldsToCompare = [
+    "status",
+    "generated_job_id",
+    "job_address",
+    "billing_address",
+    "job_description",
+    "payment_amount",
+    "purchase_order_number",
+    "quote_sent",
+    "invoice_sent",
+    "payment_received",
+    "unsuccessful_date",
+    "completion_date",
+    "work_order_date",
+  ];
+
+  for (const key of fieldsToCompare) {
+    let newVal = payload[key];
+    let oldVal = existingJob[key];
+
+    // 1. Handle Booleans & Flags (ServiceM8 1/0 vs HubSpot "true"/"false")
+    if (["quote_sent", "invoice_sent", "payment_received"].includes(key)) {
+      const toBool = (v) => v === true || v === 1 || v === "true" || v === "1";
+      if (toBool(newVal) !== toBool(oldVal)) {
+        logger.info(
+          `[Idempotency] Flag change in ${key}: ${oldVal} -> ${newVal}`
+        );
+        return true;
+      }
+      continue;
+    }
+
+    // 2. Handle Numbers (payment_amount)
+    if (key === "payment_amount") {
+      if (parseFloat(newVal || 0) !== parseFloat(oldVal || 0)) {
+        logger.info(`[Idempotency] Amount change: ${oldVal} -> ${newVal}`);
+        return true;
+      }
+      continue;
+    }
+
+    // 3. Handle Dates (Normalization)
+    if (key.endsWith("_date") || key.endsWith("_stamp")) {
+      const toTime = (v) => {
+        if (!v || String(v).startsWith("0000")) return null;
+        return new Date(v).getTime();
+      };
+      if (toTime(newVal) !== toTime(oldVal)) {
+        logger.info(
+          `[Idempotency] Date change in ${key}: ${oldVal} -> ${newVal}`
+        );
+        return true;
+      }
+      continue;
+    }
+
+    // 4. Standard String Comparison (status, addresses, descriptions)
+    const strNew = String(newVal ?? "").trim();
+    const strOld = String(oldVal ?? "").trim();
+
+    // Special case for descriptions to ignore hidden \r characters
+    if (key === "job_description") {
+      const clean = (s) => s.replace(/\r\n/g, "\n").trim();
+      if (clean(strNew) !== clean(strOld)) {
+        logger.info(`[Idempotency] Description mismatch detected.`);
+        return true;
+      }
+      continue;
+    }
+
+    if (strNew !== strOld) {
+      logger.info(
+        `[Idempotency] Field change: ${key} | "${strOld}" -> "${strNew}"`
+      );
+      return true;
+    }
+  }
+
+  return false;
+}
+function shouldUpdateDeal(newPayload, existingDeal) {
+  if (!existingDeal || !existingDeal.properties) return true;
+
+  const oldProps = existingDeal.properties;
+  const changes = [];
+
+  for (const [key, newVal] of Object.entries(newPayload)) {
+    const oldVal = oldProps[key];
+
+    // 1. Explicitly skip the category field
+    if (key === "servicem8_job_category") continue;
+
+    // 2. Skip if both are essentially empty
+    if ((newVal == null || newVal === "") && (oldVal == null || oldVal === ""))
+      continue;
+
+    let hasChanged = false;
+
+    // 3. Date Comparison
+    if (
+      key.includes("timestamp") ||
+      key.endsWith("_date") ||
+      key.endsWith("_stamp")
+    ) {
+      const time1 = newVal ? new Date(newVal).getTime() : 0;
+      const time2 = oldVal ? new Date(oldVal).getTime() : 0;
+      if (Math.abs(time1 - time2) > 1000) hasChanged = true;
+    }
+
+    // 4. Numeric Comparison - ONLY checking before the decimal point (.)
+    else if (
+      typeof newVal === "number" ||
+      key.includes("amount") ||
+      key.includes("total")
+    ) {
+      // Math.trunc removes everything after the decimal point
+      const n1 = Math.trunc(parseFloat(newVal || 0));
+      const n2 = Math.trunc(parseFloat(oldVal || 0));
+
+      if (n1 !== n2) {
+        // DEBUG LOG: Remove this after you find the culprit
+        logger.info(
+          `[DEBUG] Numeric mismatch on ${key}: New=${n1} (from ${newVal}), Old=${n2} (from ${oldVal})`
+        );
+        hasChanged = true;
+      }
+    }
+
+    // 5. String/Boolean
+    else {
+      if (String(newVal ?? "").trim() !== String(oldVal ?? "").trim()) {
+        hasChanged = true;
+      }
+    }
+
+    if (hasChanged) {
+      changes.push(key);
+    }
+  }
+
+  if (changes.length > 0) {
+    logger.info(`[Idempotency] Deal change detected in: ${changes.join(", ")}`);
+    return true;
+  }
+
+  return false;
+}
 export {
+  shouldUpdateDeal,
   taskProperties,
   needsUpdate,
+  needsUpdateJob,
   convertAustralianFormat,
   companyProperties,
   delta,

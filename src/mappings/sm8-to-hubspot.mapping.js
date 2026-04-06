@@ -240,11 +240,12 @@ function dealMappingSM8ToHS(record = {}) {
     job_address_service_m8: record?.job_address,
     billing_address_service_m8: record?.billing_address,
     // FIX: Changed mapping to record.job_description and ensured internal name matches HubSpot logic
-    // (Ensure the internal name in HS is actually 'job_description_service_m8' or similar)
+    // (Ensure the internal name in HS is acstually 'job_description_service_m8' or similar)
     job_description_service_m: record?.job_description,
 
     // --- Financials ---
-    amount: record?.payment_amount,
+    // amount: record?.payment_amount,
+    amount_servicem8: record?.payment_amount, //  We have created a different custom field for amount
     purchase_order_number_service_m8: record?.purchase_order_number,
 
     // --- Booleans (Converted to "true"/"false") ---
@@ -261,8 +262,8 @@ function dealMappingSM8ToHS(record = {}) {
       record?.payment_received_stamp
     ),
     job_unsuccessful_date_service_m8: toHubSpotDate(record?.unsuccessful_date),
-    completion_date_service_m8: toHubSpotDate(record?.completion_date),
-    work_order_date_service_m8: toHubSpotDate(record?.work_order_date),
+    // completion_date_service_m8: toHubSpotDate(record?.completion_date),
+    // work_order_date_service_m8: toHubSpotDate(record?.work_order_date),
   });
 
   return payload;

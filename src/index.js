@@ -16,7 +16,7 @@ import {
   companyMappingSM8ToHS,
   taskMappingSM8ToHS,
   PIPELINE_CATEGORY,
-} from "./mappings/hubspot.mapping.js"; // Hubspot Mapping functions
+} from "./mappings/sm8-to-hubspot.mapping.js"; // Hubspot Mapping functions
 
 // -----------------------------------serviceM8 Mapping Functions-----------------------------------------
 import {
@@ -26,7 +26,7 @@ import {
   jobMappingHSTOSM8,
   companyContactMappingHSTOSM8,
   jobContactMappingHSTOSM8,
-} from "./mappings/serviceM8.mapping.js"; // serviceM8 Mapping functions
+} from "./mappings/hs-to-serviceM8.mapping.js"; // serviceM8 Mapping functions
 
 // -----------------------------------Helper Functions-----------------------------------------
 
@@ -41,7 +41,9 @@ import {
   getLastSyncTime,
   saveLastSyncTime,
   needsUpdate,
+  needsUpdateJob,
   taskProperties,
+  shouldUpdateDeal,
 } from "./utils/helper.util.js"; // Helper functions
 
 // ------------------------------------------------Hubspot Services-----------------------------------------
@@ -53,7 +55,9 @@ import {
 export {
   PIPELINE_CATEGORY,
   taskProperties,
+  shouldUpdateDeal,
   needsUpdate,
+  needsUpdateJob,
   taskMappingSM8ToHS,
   getLastSyncTime,
   saveLastSyncTime,

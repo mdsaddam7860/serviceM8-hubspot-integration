@@ -12,6 +12,7 @@ import {
   saveLastSyncTime,
   taskMappingSM8ToHS,
   needsUpdate,
+  shouldUpdateDeal,
   taskProperties,
   PIPELINE_CATEGORY,
 } from "../index.js";
@@ -547,10 +548,17 @@ async function upsertDealInHubspot(record) {
     }
 
     if (existingDeal) {
-      logger.info(`[HUBSPOT DEAL] Deal already exists: ${existingDeal.id}`);
+      logger.debug(
+        `[HUBSPOT DEAL] Deal already exists Deal Record: ${JSON.stringify(
+          existingDeal
+        )}`
+      );
+      logger.info(
+        `[HUBSPOT DEAL] Deal already exists with ID: ${existingDeal.id}`
+      );
 
       // Check if an update is actually necessary
-      if (needsUpdate(payload, existingDeal)) {
+      if (shouldUpdateDeal(payload, existingDeal)) {
         logger.info(
           `[HUBSPOT DEAL] Proceeding with update for Deal ID: ${existingDeal.id}`
         );
