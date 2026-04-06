@@ -28,7 +28,7 @@ import {
 } from "../services/hubspot.service.js";
 
 // const schedulerFrequesncy = "*/10 * * * * *"; // Every 2 min (for testing, adjust as needed for production)
-const schedulerFrequesncy = "*/30 * * * *"; // Every min 30 (for testing, adjust as needed for production)
+const schedulerFrequesncy = "* */4 * * *"; // Every 4 hour (for testing, adjust as needed for production)
 
 let isRunning = false; // Flag to prevent overlapping executions
 
