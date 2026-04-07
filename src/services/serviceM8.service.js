@@ -616,7 +616,10 @@ async function upsertjobInServiceM8(record = {}) {
       // Call the new function
       const shouldUpdate = needsUpdateJob(payload, targetJob, logger);
 
-      if (!shouldUpdate) {
+      if (shouldUpdate) {
+        const { status, ...payloadWithoutStatus } = payload;
+        payload = payloadWithoutStatus;
+      } else {
         logger.info(
           `[ServiceM8 Job] Idempotency Check: No changes detected. Skipping update for UUID: ${targetJob.uuid}`
         );
