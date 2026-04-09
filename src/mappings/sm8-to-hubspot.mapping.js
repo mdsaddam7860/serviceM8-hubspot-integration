@@ -177,11 +177,11 @@ function companyMappingSM8ToHS(record, contactInfo = {}) {
 // }
 
 const PIPELINE_CATEGORY = Object.freeze({
-  // I - Emma Quote -> Emma Pipeline -> 1322868159
+  // I - New Build Quote -> Emma Pipeline -> 1322868159
   "3f20f466-f849-4bfa-ab52-23e6fe361feb": "1322868159",
 
   //  I - Supply Only   -> Emma Pipeline -> 1322868159
-  "9f41bb38-b426-477c-bc58-20c454051fab": "1322868159",
+  // "9f41bb38-b426-477c-bc58-20c454051fab": "1322868159",
 
   // M - Contractor -> Service Maintenance Pipeline -> 1621074403
   "ec7ccf61-b811-459c-b006-22f3866d35fb": "1621074403",
@@ -192,7 +192,7 @@ const PIPELINE_CATEGORY = Object.freeze({
   //  S - Maintenance   -> Service Maintenance Pipeline -> 1621074403
   "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b": "1621074403",
 
-  //  I - Nick Quote  -> Nick's pipeline -> default
+  //  I - Quote Upgrade/ Replacement  -> Nick's pipeline -> default
   "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b": "default",
 });
 
@@ -221,6 +221,26 @@ function dealMappingSM8ToHS(record = {}) {
       return "true";
     return "false";
   };
+
+  // Only these categories are allowed to trigger a sync
+  // const allowedCategories = Object.keys(PIPELINE_CATEGORY);
+
+  // if (!allowedCategories.includes(record?.category_uuid)) {
+  //   logger.info(`Skipping sync: Category ${record?.category_uuid} is not in the whitelist.`);
+  //   return null;
+  // }
+
+  const allowedCategories = [
+    "ec7ccf61-b811-459c-b006-22f3866d35fb", // M-Contractor
+    "f4460be7-395d-42ca-a465-22f384e3a8fb", // M-Maintenance
+    "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b", // S-Maintenance
+    "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b", // I - Quote Upgrade/ Replacement
+    "3f20f466-f849-4bfa-ab52-23e6fe361feb", // I - New Build Quote
+  ];
+
+  if (!allowedCategories.includes(record?.category_uuid)) {
+    return null; // Stop processing if category isn't in the whitelist
+  }
 
   const pipeline = PIPELINE_CATEGORY[record?.category_uuid];
 
