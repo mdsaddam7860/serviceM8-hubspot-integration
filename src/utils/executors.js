@@ -2,9 +2,9 @@ import { createRequestExecutor } from "./requestExecutor.js";
 
 const hubspotExecutor = createRequestExecutor({
   name: "HubSpot",
-  rateLimit: 8,
+  rateLimit: 5, // Lowered to 5 for safety
   intervalMs: 1000,
-  retries: 3,
+  retries: 5, // Increased retries to handle temporary spikes
 });
 
 const serviceM8Executor = createRequestExecutor({

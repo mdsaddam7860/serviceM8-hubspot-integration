@@ -526,6 +526,9 @@ async function upsertDealInHubspot(record) {
 
     const payload = dealMappingSM8ToHS(record);
 
+    // If category isn't whitelisted, payload is null; exit quietly.
+    if (!payload) return;
+
     logger.info(
       `[HUBSPOT DEAL] payload: ${JSON.stringify(
         payload,

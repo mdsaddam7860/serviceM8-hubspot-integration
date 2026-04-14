@@ -19,6 +19,14 @@ import { logger, cleanProps, convertAustralianFormat } from "../index.js";
  * console.log(mappedRecord);
  * // Output: { uuid: "58998df3-ecc7-4760-a0e5-1fe9a07e40eb", active: 1, ... }
  */
+
+const JOB_CATEGORY_TO_UUID = Object.freeze({
+  "M-Contractor": "ec7ccf61-b811-459c-b006-22f3866d35fb",
+  "M-Maintenance": "f4460be7-395d-42ca-a465-22f384e3a8fb",
+  "S-Maintence": "b4150a2b-1114-49b0-bbc5-23e7c61e2f7b",
+  "I - Quote Upgrade/ Replacement": "6642ee12-d5ea-4e88-b081-1cd9fc0ef11b",
+  "I - New Build Quote": "3f20f466-f849-4bfa-ab52-23e6fe361feb",
+});
 function jobMappingHSTOSM8(deal = {}, job_uuid) {
   const record = deal.properties || {};
 
@@ -37,6 +45,9 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
     job_address: record.job_address_service_m8,
     billing_address: record.billing_address_service_m8,
     job_description: record.job_description_service_m,
+
+    // Map servicem8_job_category to category_uuid
+    // category_uuid: JOB_CATEGORY_TO_UUID[record?.servicem8_job_category],
 
     // --- Financials ---
     // payment_amount: record.amount, //  We are not syncing amount

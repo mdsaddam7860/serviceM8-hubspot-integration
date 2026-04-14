@@ -1,21 +1,8 @@
-import dotenv from "dotenv";
-import path from "path";
-dotenv.config({
-  path: path.join(process.cwd(), ".env"),
-});
+import "./bootstrap.js";
 import app from "./src/app.js";
 import { logger } from "./src/index.js";
 import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
 import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
-
-/**!SECTION
- * Current Changes
- * Delta
- * Frequency
- *
- */
-
-// Apply save synclasTime logic in Scheduler
 
 // ------------------------------ Node Cron Schedulers------------------------------------
 import "./src/jobs/bi-direction-poller.js";
@@ -40,6 +27,7 @@ function serverInitialize() {
 
 serverInitialize();
 
+// Configuration Initialization function at startup
 async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client

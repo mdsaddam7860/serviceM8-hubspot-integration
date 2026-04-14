@@ -57,12 +57,13 @@ const productionLogger = () => {
   return createLogger({
     level: process.env.LOG_LEVEL || "info",
     format: combine(customTimestamp, errors({ stack: true })),
-    defaultMeta: { service: "openphone-service" },
+    defaultMeta: { service: "serviceM8-hubspot-integration" },
     transports: [
       dailyCombined, // all logs
       dailyError, // error-only logs
       new transports.Console({
-        format: combine(colorize(), customTimestamp, consoleFormat),
+        format: combine(customTimestamp, consoleFormat),
+        // format: combine(colorize(), customTimestamp, consoleFormat),
         level: "info",
         handleExceptions: true,
         handleRejections: true,
