@@ -21,7 +21,7 @@ function serverInitialize() {
 
     init(); // Initialize other services and forget about them
   } catch (error) {
-    logger.error("❌ Critical startup failure:", error);
+    logger.error("Critical startup failure:", error);
   }
 }
 
@@ -32,19 +32,10 @@ async function init() {
   try {
     // Initialize Hubspot and serviceM8 Client
     try {
-      logger.info(` ➡️  Configs initializeation started successfully...`);
+      logger.info(`Configs initializeation started successfully...`);
       getHubspotClient();
       getHSAxios();
       getServiceM8Client();
-      // logger.info(
-      //   `✅ HubSpot client initialized successfully : ${JSON.stringify(
-      //     hsAxios,
-      //     null,
-      //     2
-      //   )}`
-      // );
-      // logger.info(`Client: ${JSON.stringify(serviceM8Client, null, 2)}`);
-      logger.info(`✅  Configs initialized successfully`);
     } catch (error) {
       logger.error("❌ HubSpot client failed to initialize:", error);
     }
