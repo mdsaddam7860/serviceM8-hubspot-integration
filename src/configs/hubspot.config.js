@@ -10,6 +10,7 @@ function getHubspotClient() {
   if (!hubspotClient && process.env.HUBSPOT_ACCESS_TOKEN) {
     hubspotClient = createClient({
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      maxRetries: 0,
     });
   }
   return hubspotClient;
