@@ -618,6 +618,8 @@ async function upsertjobInServiceM8(record = {}) {
         );
         return targetJob.uuid; // Return without making the POST request
       }
+      // For now do not update job in servicem8
+      return targetJob.uuid; // Return without making the POST request
     } else {
       payload = jobMappingHSTOSM8(record);
     }

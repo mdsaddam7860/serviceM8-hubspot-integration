@@ -951,11 +951,32 @@ async function processSingleDealInHubspot(record, index, recordSize) {
 
     // 4. Process all contacts for this specific job in parallel
     // We await this so the loop stays organized
-    await Promise.allSettled(
-      contacts.map((contactInfo, inner_index) =>
-        processDealContactAssociation(contactInfo, upsertDeal.id, inner_index)
-      )
-    );
+    // await Promise.allSettled(
+    //   contacts.map((contactInfo, inner_index) =>
+    //     processDealContactAssociation(contactInfo, upsertDeal.id, inner_index)
+    //   )
+    // );
+
+    const results = [];
+
+    for (let inner_index = 0; inner_index < contacts.length; inner_index++) {
+      const contactInfo = contacts[inner_index];
+
+      try {
+        // Await pauses the loop until this specific promise resolves
+        const value = await processDealContactAssociation(
+          contactInfo,
+          upsertDeal.id,
+          inner_index
+        );
+        results.push({ status: "fulfilled", value });
+      } catch (reason) {
+        // If it fails, we catch it here so the loop continues to the next contact
+        results.push({ status: "rejected", reason });
+      }
+    }
+
+    // 'results' now contains the exact same data structure that Promise.allSettled would have returned
 
     return upsertDeal;
   } catch (error) {

@@ -42,12 +42,12 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
     // generated_job_id: record.generated_job_id_service_m8,
 
     // --- Addresses & Description ---
-    // job_address: record.job_address_service_m8,
-    // billing_address: record.billing_address_service_m8,
-    // job_description: record.job_description_service_m,
+    job_address: record.job_address_service_m8,
+    billing_address: record.billing_address_service_m8,
+    job_description: record.job_description_service_m,
 
     // Map servicem8_job_category to category_uuid
-    // category_uuid: JOB_CATEGORY_TO_UUID[record?.servicem8_job_category],
+    category_uuid: JOB_CATEGORY_TO_UUID[record?.servicem8_job_category],
 
     // --- Financials ---
     // payment_amount: record.amount, //  We are not syncing amount
