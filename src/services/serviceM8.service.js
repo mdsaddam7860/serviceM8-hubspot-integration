@@ -604,6 +604,8 @@ async function upsertjobInServiceM8(record = {}) {
           ? JSON.parse(existingJob[0])
           : existingJob[0];
 
+      // For now do not update job in servicem8
+      return targetJob.uuid; // Return without making the POST request
       payload = jobMappingHSTOSM8(record, targetJob.uuid);
 
       // Call the new function
@@ -618,8 +620,6 @@ async function upsertjobInServiceM8(record = {}) {
         );
         return targetJob.uuid; // Return without making the POST request
       }
-      // For now do not update job in servicem8
-      return targetJob.uuid; // Return without making the POST request
     } else {
       payload = jobMappingHSTOSM8(record);
     }
