@@ -39,12 +39,12 @@ function jobMappingHSTOSM8(deal = {}, job_uuid) {
     //   status: parseInt(record.job_status_servicem8),
     // }),
     active: 1,
-    generated_job_id: record.generated_job_id_service_m8,
+    // generated_job_id: record.generated_job_id_service_m8,
 
     // --- Addresses & Description ---
-    job_address: record.job_address_service_m8,
-    billing_address: record.billing_address_service_m8,
-    job_description: record.job_description_service_m,
+    // job_address: record.job_address_service_m8,
+    // billing_address: record.billing_address_service_m8,
+    // job_description: record.job_description_service_m,
 
     // Map servicem8_job_category to category_uuid
     // category_uuid: JOB_CATEGORY_TO_UUID[record?.servicem8_job_category],
