@@ -5,7 +5,7 @@ import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
 import { getServiceM8Client } from "./src/configs/serviceM8.config.js";
 
 // ------------------------------ Node Cron Schedulers------------------------------------
-import "./src/jobs/bi-direction-poller.js";
+import "./src/jobs/serviceM8-hubspot.poller.js";
 
 // ------------------------------- Node Server--------------------------------------------
 const PORT = process.env.PORT || 5000;

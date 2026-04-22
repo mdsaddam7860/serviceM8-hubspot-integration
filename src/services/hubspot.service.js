@@ -739,59 +739,124 @@ async function processBatchCompanyInHubspot(records = []) {
   }
 }
 
+// async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
+//   const hs_client = getHubspotClient();
+//   return Promise.allSettled(
+//     contacts.map(async (contactInfo) => {
+//       try {
+//         // Find contact asociate with company
+//         if (!contactInfo.phone && !contactInfo.email) {
+//           logger.warn(
+//             `Phone and email is empty for ${
+//               contactInfo.uuid
+//             } : ${JSON.stringify(contactInfo)}`
+//           );
+//           return;
+//         }
+//         logger.info(`✅ Processing contact ${JSON.stringify(contactInfo)}`);
+
+//         const existingContact = await upsertContactInHubspot({}, contactInfo);
+
+//         logger.info(
+//           `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
+//         );
+//         if (existingContact && existingContact?.id && companyId) {
+//           const associate = await hs_client.associations.associate(
+//             "contact",
+//             existingContact?.id,
+//             "company",
+//             companyId,
+//             "279",
+//             "HUBSPOT_DEFINED"
+//           );
+
+//           logger.info(
+//             `✅ Associate contact Id : ${
+//               existingContact?.id
+//             } with Company Id ${companyId}: ${JSON.stringify(
+//               associate,
+//               null,
+//               2
+//             )}`
+//           );
+//         }
+//       } catch (error) {
+//         logger.error("❌ Error processing contact:", {
+//           httpStatus: error?.status,
+//           response: error?.response?.data,
+//           method: error?.method,
+//           url: error?.config?.url,
+//           message: error?.message,
+//           stack: error?.stack || error,
+//         });
+//       }
+//     })
+//   );
+// }
+
 async function processAssociatedCompanyContactsInHubspot(contacts, companyId) {
   const hs_client = getHubspotClient();
-  return Promise.allSettled(
-    contacts.map(async (contactInfo) => {
-      try {
-        // Find contact asociate with company
-        if (!contactInfo.phone && !contactInfo.email) {
-          logger.warn(
-            `Phone and email is empty for ${
-              contactInfo.uuid
-            } : ${JSON.stringify(contactInfo)}`
-          );
-          return;
-        }
-        logger.info(`✅ Processing contact ${JSON.stringify(contactInfo)}`);
+  const results = [];
 
-        const existingContact = await upsertContactInHubspot({}, contactInfo);
+  for (const contactInfo of contacts) {
+    try {
+      // Validation check
+      if (!contactInfo.phone && !contactInfo.email) {
+        logger.warn(
+          `Phone and email is empty for ${contactInfo.uuid} : ${JSON.stringify(
+            contactInfo
+          )}`
+        );
+        // Track the fulfilled state to mimic Promise.allSettled
+        results.push({ status: "fulfilled", value: undefined });
+        continue; // Replaced 'return' with 'continue' to move to the next iteration
+      }
+
+      logger.info(`✅ Processing contact ${JSON.stringify(contactInfo)}`);
+
+      // Await upsert sequentially
+      const existingContact = await upsertContactInHubspot({}, contactInfo);
+
+      logger.info(
+        `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
+      );
+
+      // Await association sequentially
+      if (existingContact && existingContact?.id && companyId) {
+        const associate = await hs_client.associations.associate(
+          "contact",
+          existingContact?.id,
+          "company",
+          companyId,
+          "279",
+          "HUBSPOT_DEFINED"
+        );
 
         logger.info(
-          `✅ Upserted contact  ${JSON.stringify(existingContact, null, 2)}`
+          `✅ Associate contact Id : ${
+            existingContact?.id
+          } with Company Id ${companyId}: ${JSON.stringify(associate, null, 2)}`
         );
-        if (existingContact && existingContact?.id && companyId) {
-          const associate = await hs_client.associations.associate(
-            "contact",
-            existingContact?.id,
-            "company",
-            companyId,
-            "279",
-            "HUBSPOT_DEFINED"
-          );
-
-          logger.info(
-            `✅ Associate contact Id : ${
-              existingContact?.id
-            } with Company Id ${companyId}: ${JSON.stringify(
-              associate,
-              null,
-              2
-            )}`
-          );
-        }
-      } catch (error) {
-        logger.error("❌ Error processing contact:", {
-          httpStatus: error?.status,
-          response: error?.response?.data,
-          method: error?.method,
-          url: error?.config?.url,
-          message: error?.message,
-          stack: error?.stack || error,
-        });
       }
-    })
-  );
+
+      // Track successful completion for this contact
+      results.push({ status: "fulfilled", value: undefined });
+    } catch (error) {
+      logger.error("❌ Error processing contact:", {
+        httpStatus: error?.status,
+        response: error?.response?.data,
+        method: error?.method,
+        url: error?.config?.url,
+        message: error?.message,
+        stack: error?.stack || error,
+      });
+
+      // Track the rejected state to mimic Promise.allSettled
+      results.push({ status: "rejected", reason: error });
+    }
+  }
+
+  return results;
 }
 /**
  * Process associated company contacts in Hubspot with a contact.

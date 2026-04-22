@@ -1,5 +1,7 @@
 import cron from "node-cron";
 import { logger } from "../index.js";
+import { saveLastSyncTime } from "../utils/helper.util.js";
+
 import {
   // ---------------- [ ServiceM8 → HubSpot Sync ] ----------------
   // Client → Contact
@@ -14,28 +16,29 @@ import {
   syncServiceM8JobChecklistToHubSpotAsTasks,
 } from "../services/serviceM8.service.js";
 
-// const schedulerFrequesncy = "0 */2 * * * *"; // Every 2 min (for testing, adjust as needed for production)
-const schedulerFrequesncy = "0 * * * *"; // Every Hour at min 0 (for testing, adjust as needed for production)
+const schedulerFrequesncy = "0 */4 * * *"; // Every 4 hour (for testing, adjust as needed for production)
+// const schedulerFrequesncy = "*/5 * * * * *"; // Every Hour at min 0 (for testing, adjust as needed for production)
 
 let isRunning = false; // Flag to prevent overlapping executions
 
 logger.info(
-  `Scheduler Initialized fro ServiceM8-Hubspot successfully Sync-Frequency ${schedulerFrequesncy}`
+  `Scheduler Initialized from ServiceM8->Hubspot successfully Sync-Frequency ${schedulerFrequesncy}`
 );
 cron.schedule(schedulerFrequesncy, async () => {
   // Simultaneously handle both ServiceM8 and Hubspot tasks
+  const date = new Date().toISOString();
   try {
     if (isRunning) {
-      logger.info(`ServiceM8-Hubspot is already running...`);
+      logger.info(`ServiceM8->Hubspot is already running...`);
       return;
     }
 
     isRunning = true;
-    logger.info("Polling ServiceM8-Hubspot started...");
+    logger.info("Polling ServiceM8->Hubspot started...");
 
     // await Promise.allSettled([
     // await syncServiceM8ClientToHubSpotAsContact();
-    // await syncServiceM8ClientToHubSpotAsCompany();
+    await syncServiceM8ClientToHubSpotAsCompany();
     await syncServiceM8JobToHubSpotAsDeal();
     await syncServiceM8NoteToHubSpotAsActivity();
     await syncServiceM8JobChecklistToHubSpotAsTasks();
@@ -49,5 +52,6 @@ cron.schedule(schedulerFrequesncy, async () => {
     });
   } finally {
     isRunning = false; // Reset the flag after execution
+    saveLastSyncTime(date);
   }
 });
