@@ -562,14 +562,14 @@ async function upsertDealInHubspot(record) {
 
       // Check if an update is actually necessary
       if (shouldUpdateDeal(payload, existingDeal)) {
-        logger.info(
-          `[HUBSPOT DEAL] Proceeding with update for Deal ID: ${existingDeal.id}`
-        );
+        // logger.info(
+        //   `[HUBSPOT DEAL] Proceeding with update for Deal ID: ${existingDeal.id}`
+        // );
         return await hs_client.deals.updateDeal(existingDeal?.id, payload);
       } else {
-        logger.info(
-          `[HUBSPOT DEAL] Idempotency Check: No changes detected. Skipping update.`
-        );
+        // logger.info(
+        //   `[HUBSPOT DEAL] Idempotency Check: No changes detected. Skipping update.`
+        // );
         return existingDeal; // Return the existing record without API call
       }
     } else {

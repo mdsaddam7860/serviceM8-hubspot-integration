@@ -391,71 +391,94 @@ function needsUpdateJob(payload, existingJob) {
 
   return false;
 }
+// function shouldUpdateDeal(newPayload, existingDeal) {
+//   if (!existingDeal || !existingDeal.properties) return true;
+
+//   const oldProps = existingDeal.properties;
+//   const changes = [];
+
+//   for (const [key, newVal] of Object.entries(newPayload)) {
+//     const oldVal = oldProps[key];
+
+//     // 1. Explicitly skip the category field
+//     if (key === "servicem8_job_category") continue;
+
+//     // 2. Skip if both are essentially empty
+//     if ((newVal == null || newVal === "") && (oldVal == null || oldVal === ""))
+//       continue;
+
+//     let hasChanged = false;
+
+//     // 3. Date Comparison
+//     if (
+//       key.includes("timestamp") ||
+//       key.endsWith("_date") ||
+//       key.endsWith("_stamp")
+//     ) {
+//       const time1 = newVal ? new Date(newVal).getTime() : 0;
+//       const time2 = oldVal ? new Date(oldVal).getTime() : 0;
+//       if (Math.abs(time1 - time2) > 1000) hasChanged = true;
+//     }
+
+//     // 4. Numeric Comparison - ONLY checking before the decimal point (.)
+//     else if (
+//       typeof newVal === "number" ||
+//       key.includes("amount") ||
+//       key.includes("total")
+//     ) {
+//       // Math.trunc removes everything after the decimal point
+//       const n1 = Math.trunc(parseFloat(newVal || 0));
+//       const n2 = Math.trunc(parseFloat(oldVal || 0));
+
+//       if (n1 !== n2) {
+//         // DEBUG LOG: Remove this after you find the culprit
+//         logger.info(
+//           `[DEBUG] Numeric mismatch on ${key}: New=${n1} (from ${newVal}), Old=${n2} (from ${oldVal})`
+//         );
+//         hasChanged = true;
+//       }
+//     }
+
+//     // 5. String/Boolean
+//     else {
+//       if (String(newVal ?? "").trim() !== String(oldVal ?? "").trim()) {
+//         hasChanged = true;
+//       }
+//     }
+
+//     if (hasChanged) {
+//       changes.push(key);
+//     }
+//   }
+
+//   if (changes.length > 0) {
+//     logger.info(`[Idempotency] Deal change detected in: ${changes.join(", ")}`);
+//     return true;
+//   }
+
+//   return false;
+// }
+
 function shouldUpdateDeal(newPayload, existingDeal) {
+  // If the deal doesn't exist yet, we definitely want to create/update it
   if (!existingDeal || !existingDeal.properties) return true;
 
   const oldProps = existingDeal.properties;
-  const changes = [];
 
-  for (const [key, newVal] of Object.entries(newPayload)) {
-    const oldVal = oldProps[key];
+  // Extract the status fields (default to empty string to avoid null errors)
+  const newStatus = String(newPayload.job_status_servicem8 ?? "").trim();
+  const oldStatus = String(oldProps.job_status_servicem8 ?? "").trim();
 
-    // 1. Explicitly skip the category field
-    if (key === "servicem8_job_category") continue;
-
-    // 2. Skip if both are essentially empty
-    if ((newVal == null || newVal === "") && (oldVal == null || oldVal === ""))
-      continue;
-
-    let hasChanged = false;
-
-    // 3. Date Comparison
-    if (
-      key.includes("timestamp") ||
-      key.endsWith("_date") ||
-      key.endsWith("_stamp")
-    ) {
-      const time1 = newVal ? new Date(newVal).getTime() : 0;
-      const time2 = oldVal ? new Date(oldVal).getTime() : 0;
-      if (Math.abs(time1 - time2) > 1000) hasChanged = true;
-    }
-
-    // 4. Numeric Comparison - ONLY checking before the decimal point (.)
-    else if (
-      typeof newVal === "number" ||
-      key.includes("amount") ||
-      key.includes("total")
-    ) {
-      // Math.trunc removes everything after the decimal point
-      const n1 = Math.trunc(parseFloat(newVal || 0));
-      const n2 = Math.trunc(parseFloat(oldVal || 0));
-
-      if (n1 !== n2) {
-        // DEBUG LOG: Remove this after you find the culprit
-        logger.info(
-          `[DEBUG] Numeric mismatch on ${key}: New=${n1} (from ${newVal}), Old=${n2} (from ${oldVal})`
-        );
-        hasChanged = true;
-      }
-    }
-
-    // 5. String/Boolean
-    else {
-      if (String(newVal ?? "").trim() !== String(oldVal ?? "").trim()) {
-        hasChanged = true;
-      }
-    }
-
-    if (hasChanged) {
-      changes.push(key);
-    }
-  }
-
-  if (changes.length > 0) {
-    logger.info(`[Idempotency] Deal change detected in: ${changes.join(", ")}`);
+  // Compare strictly on status
+  if (newStatus !== oldStatus) {
+    logger.info(
+      `[Idempotency] Deal status change detected: Old=[${oldStatus}] -> New=[${newStatus}]. Proceeding with update.`
+    );
     return true;
   }
 
+  // If status is the same, do nothing (even if other fields changed)
+  logger.info(`[Idempotency] No status change detected. Skipping update.`);
   return false;
 }
 export {
